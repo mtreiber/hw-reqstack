@@ -1,0 +1,317 @@
+#!/usr/bin/env bash
+# hw-reqstack setup — install skills and scaffold requirements workspace
+#
+# Usage:
+#   ./setup                        Install into current working directory
+#   ./setup /path/to/project       Install into specified project directory
+#   ./setup --check                Verify an existing installation
+#   ./setup --upgrade              Re-install skills over an existing installation
+#
+# What this does:
+#   1. Copies .claude/skills/hw-reqstack/ into your project
+#   2. Scaffolds requirements/ workspace with all directories and placeholder files
+#   3. Creates or updates CLAUDE.md with the hw-reqstack section
+#
+# After setup, open Claude Code in your project and run /mission-challenge
+# to start your first requirements sprint.
+
+set -e
+
+HW_REQSTACK_DIR="$(cd "$(dirname "$0")" && pwd)"
+SKILLS_SRC="$HW_REQSTACK_DIR/.claude/skills/hw-reqstack"
+
+# ─── Colours ─────────────────────────────────────────────────────────────────
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+BOLD='\033[1m'
+RESET='\033[0m'
+
+ok()   { echo -e "${GREEN}  ✓${RESET}  $1"; }
+info() { echo -e "${BLUE}  →${RESET}  $1"; }
+warn() { echo -e "${YELLOW}  ⚠${RESET}  $1"; }
+fail() { echo -e "${RED}  ✗${RESET}  $1"; }
+head() { echo -e "\n${BOLD}$1${RESET}"; }
+
+# ─── Parse arguments ─────────────────────────────────────────────────────────
+TARGET_DIR="$(pwd)"
+MODE="install"
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --check)   MODE="check";   shift ;;
+    --upgrade) MODE="upgrade"; shift ;;
+    --help|-h)
+      echo "Usage: ./setup [project-dir] [--check|--upgrade]"
+      echo ""
+      echo "  project-dir   Target project directory (default: current directory)"
+      echo "  --check       Verify an existing installation without modifying files"
+      echo "  --upgrade     Re-install skills over an existing installation"
+      exit 0
+      ;;
+    -*)
+      fail "Unknown flag: $1. Run ./setup --help for usage."
+      exit 1
+      ;;
+    *)
+      TARGET_DIR="$1"
+      shift
+      ;;
+  esac
+done
+
+# ─── Resolve target ──────────────────────────────────────────────────────────
+if [ ! -d "$TARGET_DIR" ]; then
+  fail "Target directory does not exist: $TARGET_DIR"
+  exit 1
+fi
+TARGET_DIR="$(cd "$TARGET_DIR" && pwd)"
+
+# ─── Check mode ──────────────────────────────────────────────────────────────
+if [ "$MODE" = "check" ]; then
+  head "hw-reqstack installation check: $TARGET_DIR"
+  ERRORS=0
+
+  SKILLS=(mission-challenge req-challenge req-derive interface-audit verify-plan traceability baseline req-retro)
+  for skill in "${SKILLS[@]}"; do
+    SKILL_FILE="$TARGET_DIR/.claude/skills/hw-reqstack/$skill/SKILL.md"
+    if [ -f "$SKILL_FILE" ]; then
+      ok "Skill present: $skill"
+    else
+      fail "Skill missing: $skill"
+      ERRORS=$((ERRORS + 1))
+    fi
+  done
+
+  REQ_DIRS=(00-mission 01-proposed 02-challenged 03-derived 04-interfaces 05-verification 06-traceability 07-baseline 08-retros)
+  for d in "${REQ_DIRS[@]}"; do
+    if [ -d "$TARGET_DIR/requirements/$d" ]; then
+      ok "Requirements dir: requirements/$d"
+    else
+      fail "Missing dir: requirements/$d"
+      ERRORS=$((ERRORS + 1))
+    fi
+  done
+
+  if [ -f "$TARGET_DIR/CLAUDE.md" ]; then
+    if grep -q "hw-reqstack" "$TARGET_DIR/CLAUDE.md"; then
+      ok "CLAUDE.md contains hw-reqstack section"
+    else
+      warn "CLAUDE.md exists but has no hw-reqstack section"
+    fi
+  else
+    warn "CLAUDE.md not found"
+  fi
+
+  echo ""
+  if [ "$ERRORS" -eq 0 ]; then
+    echo -e "${GREEN}${BOLD}All checks passed.${RESET}"
+  else
+    echo -e "${RED}${BOLD}$ERRORS issue(s) found. Run ./setup to repair.${RESET}"
+    exit 1
+  fi
+  exit 0
+fi
+
+# ─── Install / upgrade ───────────────────────────────────────────────────────
+if [ "$MODE" = "install" ] && [ -d "$TARGET_DIR/.claude/skills/hw-reqstack" ]; then
+  warn "hw-reqstack skills already present at $TARGET_DIR/.claude/skills/hw-reqstack"
+  warn "Run ./setup --upgrade to overwrite, or ./setup --check to verify."
+  exit 0
+fi
+
+echo ""
+echo -e "${BOLD}hw-reqstack${RESET} — hardware requirements management skills"
+echo -e "Installing into: ${BLUE}$TARGET_DIR${RESET}"
+echo ""
+
+# ─── Step 1: Copy skills ─────────────────────────────────────────────────────
+head "Step 1 — Installing skills"
+
+SKILLS_DEST="$TARGET_DIR/.claude/skills/hw-reqstack"
+mkdir -p "$SKILLS_DEST"
+
+cp -Rf "$SKILLS_SRC/." "$SKILLS_DEST/"
+ok "Skills copied to .claude/skills/hw-reqstack/"
+
+SKILLS=(mission-challenge req-challenge req-derive interface-audit verify-plan traceability baseline req-retro)
+for skill in "${SKILLS[@]}"; do
+  if [ -f "$SKILLS_DEST/$skill/SKILL.md" ]; then
+    ok "  /$skill"
+  else
+    fail "  /$skill — SKILL.md missing after copy"
+    exit 1
+  fi
+done
+
+# ─── Step 2: Scaffold requirements workspace ─────────────────────────────────
+head "Step 2 — Scaffolding requirements workspace"
+
+REQ="$TARGET_DIR/requirements"
+
+scaffold_dir() {
+  local dir="$1"
+  local readme="$2"
+  mkdir -p "$REQ/$dir"
+  if [ ! -f "$REQ/$dir/.gitkeep" ] && [ ! -f "$REQ/$dir/$(ls "$REQ/$dir" 2>/dev/null | head -1)" ]; then
+    if [ -n "$readme" ]; then
+      echo "# $readme" > "$REQ/$dir/README.md"
+      echo "" >> "$REQ/$dir/README.md"
+      echo "_Populated by hw-reqstack skills. See CLAUDE.md for sprint order._" >> "$REQ/$dir/README.md"
+    else
+      touch "$REQ/$dir/.gitkeep"
+    fi
+  fi
+}
+
+scaffold_dir "00-mission"           "Mission Brief"
+scaffold_dir "01-proposed"          "Proposed Requirements (input to /req-challenge)"
+scaffold_dir "02-challenged"        "Challenge Log (output of /req-challenge)"
+scaffold_dir "03-derived"           "Derived Requirements (output of /req-derive)"
+scaffold_dir "03-derived/subsystems" ""
+scaffold_dir "04-interfaces"        "Interface Audit (output of /interface-audit)"
+scaffold_dir "04-interfaces/icd"    ""
+scaffold_dir "05-verification"      "Verification Matrix and Test Records (output of /verify-plan)"
+scaffold_dir "05-verification/test-records" ""
+scaffold_dir "06-traceability"      "Requirements Traceability Matrix (output of /traceability)"
+scaffold_dir "07-baseline"          "Baseline Packages (output of /baseline)"
+scaffold_dir "07-baseline/current"  ""
+scaffold_dir "07-baseline/archive"  ""
+scaffold_dir "08-retros"            "Requirements Retrospectives (output of /req-retro)"
+
+ok "requirements/ workspace scaffolded (9 directories)"
+
+# ─── Write OWNERS.md ─────────────────────────────────────────────────────────
+OWNERS_FILE="$REQ/OWNERS.md"
+if [ ! -f "$OWNERS_FILE" ]; then
+cat > "$OWNERS_FILE" << 'OWNERS_EOF'
+# Requirements Owner Registry
+_Maintained by /req-challenge and /baseline skills._
+_Every requirement in this program must appear in this table._
+_A requirement with no named owner is deleted at the next /req-challenge session._
+
+---
+
+## Active Owners
+
+| Req ID | Title | Owner | Subsystem | Last Updated |
+|--------|-------|-------|-----------|--------------|
+| —      | —     | —     | —         | —            |
+
+---
+
+## Deleted Requirements Log
+_Deleting a requirement is progress. Every deletion is recorded here, never erased._
+
+| Req ID | Title | Deleted By | Reason | Date |
+|--------|-------|------------|--------|------|
+| —      | —     | —          | —      | —    |
+OWNERS_EOF
+  ok "requirements/OWNERS.md created"
+else
+  info "requirements/OWNERS.md already exists — skipped"
+fi
+
+# ─── Write proposed-requirements template ────────────────────────────────────
+PROPOSED_FILE="$REQ/01-proposed/proposed-requirements.md"
+if [ ! -f "$PROPOSED_FILE" ]; then
+cat > "$PROPOSED_FILE" << 'PROPOSED_EOF'
+# Proposed Requirements
+_This file is the input to /req-challenge._
+_Add requirements here before running a challenge session._
+_Format: one entry per requirement, using the template below._
+
+---
+
+<!--
+## [REQ-ID] — [Short Title]
+
+**Proposed Text:** [One sentence requirement]
+**Parent Objective:** [MO-NNN or UNKNOWN]
+**Proposed Owner:** [Name or UNASSIGNED]
+**Source:** [Who proposed this and why]
+-->
+
+<!-- Add proposed requirements below this line -->
+PROPOSED_EOF
+  ok "requirements/01-proposed/proposed-requirements.md created"
+else
+  info "requirements/01-proposed/proposed-requirements.md already exists — skipped"
+fi
+
+# ─── Step 3: Update CLAUDE.md ────────────────────────────────────────────────
+head "Step 3 — Updating CLAUDE.md"
+
+CLAUDE_MD="$TARGET_DIR/CLAUDE.md"
+HW_REQSTACK_SECTION='## hw-reqstack
+
+Requirements management skills for hardware programs. Derived from the engineering
+philosophy used at SpaceX, Anduril, and Tesla: requirements are guilty until proven
+innocent, owned by named engineers, derived from physics, and tested at the moment
+they are written.
+
+**Sprint order** (each skill reads from the output of the prior skill):
+
+```
+/mission-challenge → /req-challenge → /req-derive → /interface-audit
+→ /verify-plan → /traceability → /baseline → [hardware test] → /req-retro
+```
+
+**Available skills:**
+- `/mission-challenge` — challenge objectives before writing any requirements
+- `/req-challenge`     — adversarial review; delete everything that can be deleted
+- `/req-derive`        — bottom-up derivation from physics and manufacturing constraints
+- `/interface-audit`  — reduce ICD count through design, not documentation
+- `/verify-plan`      — write the test at the same time as the requirement
+- `/traceability`     — find orphans, dead ends, and frozen requirements
+- `/baseline`         — 7-gate release check; nothing ships without passing all gates
+- `/req-retro`        — post-test retrospective; were the requirements right?
+
+**Skills not working?** Run `cd .claude/skills/hw-reqstack && ../../../setup --upgrade`
+
+**Iron Laws (apply in every skill, every session):**
+1. Every requirement must have a named human owner. Not a team. A person.
+2. Every requirement must cite the governing equation or analysis that justifies it.
+3. Every requirement must have a written test before it reaches baseline.
+4. A requirement that cannot be tested is a wish. Flag it. Do not baseline it.
+5. Deleting a requirement is progress. Track deletions as proudly as additions.
+6. Every margin value must state its specific justification. "Per guidelines" is not a justification.
+7. ASPIRATIONAL requirements do not enter baseline. They are design goals.
+
+**File naming:**
+- Requirement IDs: `[SUBSYSTEM]-[NNN]` e.g. `LDR-001`, `TDC-003`, `SYS-001`
+- Mission objectives: `MO-[NNN]`
+- ICD files: `[subsystem-a]-to-[subsystem-b].md`
+- Test records: `TR-[NNN]-[short-title].md`
+- Baselines: `baseline-v[major].[minor].md`'
+
+if [ ! -f "$CLAUDE_MD" ]; then
+  echo "# CLAUDE.md" > "$CLAUDE_MD"
+  echo "" >> "$CLAUDE_MD"
+  echo "$HW_REQSTACK_SECTION" >> "$CLAUDE_MD"
+  ok "CLAUDE.md created with hw-reqstack section"
+elif grep -q "hw-reqstack" "$CLAUDE_MD"; then
+  info "CLAUDE.md already contains hw-reqstack section — skipped"
+  info "Run ./setup --upgrade to re-write the section"
+else
+  echo "" >> "$CLAUDE_MD"
+  echo "$HW_REQSTACK_SECTION" >> "$CLAUDE_MD"
+  ok "hw-reqstack section appended to existing CLAUDE.md"
+fi
+
+# ─── Done ────────────────────────────────────────────────────────────────────
+echo ""
+echo -e "${GREEN}${BOLD}hw-reqstack installed successfully.${RESET}"
+echo ""
+echo -e "  Project:  ${BLUE}$TARGET_DIR${RESET}"
+echo -e "  Skills:   ${BLUE}$TARGET_DIR/.claude/skills/hw-reqstack/${RESET}"
+echo -e "  Workspace:${BLUE}$TARGET_DIR/requirements/${RESET}"
+echo ""
+echo -e "${BOLD}Next step:${RESET}"
+echo "  Open Claude Code in your project directory and run:"
+echo -e "  ${BLUE}/mission-challenge${RESET}"
+echo ""
+echo "Verify this installation at any time:"
+echo -e "  ${BLUE}./setup --check $TARGET_DIR${RESET}"
+echo ""
