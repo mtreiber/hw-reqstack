@@ -23,6 +23,15 @@ four steps below. Write one output file per subsystem.
 
 Output files: `requirements/03-derived/subsystems/[subsystem-name].md`
 
+## Units Policy
+
+All requirement values must state units explicitly alongside the number.
+Preferred SI units: V, A, Ω, W, °C, Hz, s, m, Pa, N.
+Non-SI units (e.g., dBm, ns, ppm) must include the conversion to SI in
+the derivation section.
+Ambiguous units (e.g., "degrees" without specifying °C or °) are not accepted.
+A value without units is not a requirement.
+
 ## Four Derivation Steps
 
 **STEP 1 — PHYSICS DERIVATION**
@@ -47,6 +56,10 @@ Unacceptable justifications:
 
 **STEP 3 — MANUFACTURING FLOOR**
 What is the achievable tolerance at target production rate and cost?
+State the source for the manufacturing capability value. Acceptable sources:
+  - Vendor process specification (cite doc name and revision)
+  - Cpk from a measured production run (cite the data)
+  - Estimate — explicitly flag as ESTIMATE with a date by which it will be measured
 If the physics requirement is tighter than manufacturing capability:
   → FLAG as DESIGN DRIVER. Do not hide it. Escalate to system architecture.
 If manufacturing tolerance is the binding constraint, not physics:
@@ -59,13 +72,20 @@ Assign exactly one maturity level:
   Use when: requirement is real but analysis has not been done.
   Rule: ASPIRATIONAL requirements do not enter baseline.
 
-- **ANALYTICAL** — derived from simulation or calculation; not yet tested.
-  Use when: governing equation has been applied and result is credible.
-  Rule: ANALYTICAL requirements may enter baseline with a test plan.
+- **ANALYTICAL-MANUAL** — derived from hand calculation or spreadsheet; not yet tested.
+  Use when: governing equation has been applied with manual arithmetic.
+  Rule: Cite the equation and computed value. State assumptions explicitly.
+
+- **ANALYTICAL-SIMULATION** — derived from simulation tool; not yet tested.
+  Use when: governing equation has been applied in a simulation tool.
+  Rule: Cite the tool name, version, and model file path.
 
 - **VALIDATED** — backed by physical test data from this program.
   Use when: a test record exists in requirements/05-verification/test-records/.
-  Rule: VALIDATED requirements are the strongest class. Cite the test record.
+  Rule: VALIDATED requirements are the strongest class. Cite the TR-NNN number.
+
+Note: ANALYTICAL-MANUAL and ANALYTICAL-SIMULATION may enter baseline with a test plan.
+ASPIRATIONAL may not enter baseline.
 
 ## Output Document Schema
 
@@ -79,8 +99,8 @@ Do not omit any field. Mark unknown fields `TBD [specific reason and date to res
 # [Subsystem Name] — Derived Requirements
 Skill: /req-derive
 Date: YYYY-MM-DD
-Owner: [Named engineer — not a team]
-Maturity (overall): ASPIRATIONAL | ANALYTICAL | VALIDATED
+Subsystem Lead: [Named engineer — owns the subsystem file, not necessarily each req]
+Maturity (overall): ASPIRATIONAL | ANALYTICAL-MANUAL | ANALYTICAL-SIMULATION | VALIDATED
 Parent Mission Objectives: [MO-NNN, MO-NNN]
 Challenge Log Reference: requirements/02-challenged/challenge-log.md
 Last /req-challenge: YYYY-MM-DD
@@ -125,6 +145,8 @@ Cpk, thermal variation, first-prototype uncertainty. Never cite "design guidelin
 
 **Achievable Tolerance:** [value] [units] at [process / vendor / Cpk]
 
+**Manufacturing Capability Source:** [vendor spec doc / measured Cpk / ESTIMATE — to be measured by YYYY-MM-DD]
+
 **Binding Constraint:** PHYSICS | MANUFACTURING | COST | SCHEDULE
 
 **Design Driver Flag:** YES — escalation required | NO
@@ -133,13 +155,14 @@ Cpk, thermal variation, first-prototype uncertainty. Never cite "design guidelin
 
 ### Maturity & Ownership
 
-| Field             | Value                                      |
-|-------------------|--------------------------------------------|
-| Maturity          | ASPIRATIONAL / ANALYTICAL / VALIDATED      |
-| Owner             | [Named engineer]                           |
-| Validation Record | [TR-NNN path or NOT YET RUN]               |
-| Parent Req        | [challenge-log REQ-ID]                     |
-| Parent Objective  | [MO-NNN]                                   |
+| Field             | Value                                                                    |
+|-------------------|--------------------------------------------------------------------------|
+| Maturity          | ASPIRATIONAL / ANALYTICAL-MANUAL / ANALYTICAL-SIMULATION / VALIDATED    |
+| Simulation Tool   | [Tool name + version + model file path, or N/A]                         |
+| Owner             | [Named engineer — accountable for this specific requirement]             |
+| Validation Record | [TR-NNN path or NOT YET RUN]                                             |
+| Parent Req        | [challenge-log REQ-ID]                                                   |
+| Parent Objective  | [MO-NNN]                                                                 |
 
 ---
 
@@ -156,9 +179,9 @@ Cpk, thermal variation, first-prototype uncertainty. Never cite "design guidelin
 
 ## Requirements Summary Table
 
-| Req ID | Title | Value | Owner | Maturity | Constraint | Driver? |
-|--------|-------|-------|-------|----------|------------|---------|
-|        |       |       |       |          |            |         |
+| Req ID | Title | Value | Units | Owner | Maturity | Constraint | Driver? |
+|--------|-------|-------|-------|-------|----------|------------|---------| 
+|        |       |       |       |       |          |            |         |
 
 ## Open Items
 
@@ -172,3 +195,10 @@ Cpk, thermal variation, first-prototype uncertainty. Never cite "design guidelin
 |---------|------------|--------|-----------------------------|
 | 0.1     | YYYY-MM-DD | [name] | Initial derivation          |
 ```
+
+## Re-run Protocol
+
+When a single requirement is returned from a downstream gate (/verify-plan,
+/baseline, /req-change), update only that requirement's block in the subsystem
+file. Append to the subsystem file — do not regenerate the full document.
+Update the Requirements Summary Table row and increment the Revision History.

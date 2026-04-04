@@ -1,0 +1,1917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Requirements Management — Notion Implementation Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f11;
+    --bg2: #13161a;
+    --bg3: #1a1e24;
+    --border: #252b33;
+    --border2: #2f3740;
+    --text: #c8d0d8;
+    --text-dim: #5c6670;
+    --text-mid: #8a94a0;
+    --accent: #e8a020;
+    --accent2: #3b82f6;
+    --accent3: #10b981;
+    --accent4: #ef4444;
+    --accent5: #a855f7;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --cond: 'IBM Plex Sans Condensed', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.65;
+    min-height: 100vh;
+  }
+
+  /* ── LAYOUT ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: 100vh;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar-header {
+    padding: 24px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-brand {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+
+  .sidebar-title {
+    font-family: var(--cond);
+    font-size: 17px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.2;
+  }
+
+  .sidebar-nav {
+    padding: 16px 0;
+    flex: 1;
+  }
+
+  .nav-section-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 12px 20px 6px;
+  }
+
+  .nav-link {
+    display: block;
+    padding: 7px 20px;
+    text-decoration: none;
+    font-size: 13px;
+    color: var(--text-mid);
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+    font-family: var(--sans);
+  }
+
+  .nav-link:hover {
+    color: var(--text);
+    background: var(--bg3);
+    border-left-color: var(--border2);
+  }
+
+  .nav-link.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: rgba(232, 160, 32, 0.06);
+  }
+
+  .nav-link .nav-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-right: 8px;
+  }
+
+  /* ── MAIN ── */
+  .main {
+    max-width: 900px;
+    padding: 60px 56px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    margin-bottom: 72px;
+    padding-bottom: 48px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hero-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  .hero h1 {
+    font-family: var(--cond);
+    font-size: 48px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.05;
+    margin-bottom: 20px;
+  }
+
+  .hero-sub {
+    font-size: 16px;
+    color: var(--text-mid);
+    max-width: 600px;
+    line-height: 1.7;
+  }
+
+  .hero-chips {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 24px;
+  }
+
+  .chip {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 3px;
+    border: 1px solid var(--border2);
+    color: var(--text-mid);
+  }
+
+  /* ── SECTION ── */
+  .section {
+    margin-bottom: 72px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+
+  .section-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  .section h2 {
+    font-family: var(--cond);
+    font-size: 26px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .section h3 {
+    font-family: var(--cond);
+    font-size: 18px;
+    font-weight: 600;
+    color: #e0e8f0;
+    margin-bottom: 14px;
+    margin-top: 36px;
+  }
+
+  .section h4 {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+    margin-top: 24px;
+  }
+
+  .section p {
+    color: var(--text);
+    margin-bottom: 14px;
+    line-height: 1.7;
+  }
+
+  /* ── CALLOUT ── */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: rgba(232, 160, 32, 0.06);
+    padding: 16px 20px;
+    margin: 20px 0;
+    border-radius: 0 4px 4px 0;
+  }
+
+  .callout.blue { border-left-color: var(--accent2); background: rgba(59, 130, 246, 0.06); }
+  .callout.green { border-left-color: var(--accent3); background: rgba(16, 185, 129, 0.06); }
+  .callout.red { border-left-color: var(--accent4); background: rgba(239, 68, 68, 0.06); }
+  .callout.purple { border-left-color: var(--accent5); background: rgba(168, 85, 247, 0.06); }
+
+  .callout-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .callout.blue .callout-label { color: var(--accent2); }
+  .callout.green .callout-label { color: var(--accent3); }
+  .callout.red .callout-label { color: var(--accent4); }
+  .callout.purple .callout-label { color: var(--accent5); }
+
+  .callout p { margin: 0; font-size: 14px; }
+
+  /* ── DATABASE BLOCK ── */
+  .db-block {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 20px 0 28px;
+  }
+
+  .db-header {
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .db-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .db-icon.t1 { background: rgba(239,68,68,0.15); }
+  .db-icon.t2 { background: rgba(232,160,32,0.15); }
+  .db-icon.t3 { background: rgba(59,130,246,0.15); }
+  .db-icon.t4 { background: rgba(16,185,129,0.15); }
+  .db-icon.chg { background: rgba(168,85,247,0.15); }
+  .db-icon.test { background: rgba(239,68,68,0.12); }
+
+  .db-name {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 14px;
+    color: #fff;
+  }
+
+  .db-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-left: auto;
+    font-family: var(--mono);
+  }
+
+  .db-body { padding: 0; }
+
+  .prop-row {
+    display: grid;
+    grid-template-columns: 200px 130px 1fr;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+
+  .prop-row:last-child { border-bottom: none; }
+
+  .prop-row > div {
+    padding: 10px 16px;
+    border-right: 1px solid var(--border);
+  }
+
+  .prop-row > div:last-child { border-right: none; }
+
+  .prop-header > div {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: var(--bg3);
+    padding: 8px 16px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .prop-row > div:first-child {
+    font-weight: 500;
+    color: #e0e8f0;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  .prop-type {
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+
+  .ptype { padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; display: inline-block; }
+  .ptype.sel { background: rgba(59,130,246,0.15); color: #60a5fa; }
+  .ptype.msel { background: rgba(168,85,247,0.15); color: #c084fc; }
+  .ptype.rel { background: rgba(16,185,129,0.15); color: #34d399; }
+  .ptype.rl { background: rgba(232,160,32,0.15); color: #fbbf24; }
+  .ptype.txt { background: rgba(148,163,184,0.1); color: #94a3b8; }
+  .ptype.date { background: rgba(239,68,68,0.12); color: #f87171; }
+  .ptype.num { background: rgba(16,185,129,0.12); color: #6ee7b7; }
+  .ptype.person { background: rgba(232,160,32,0.12); color: #fde68a; }
+  .ptype.url { background: rgba(148,163,184,0.1); color: #94a3b8; }
+  .ptype.formula { background: rgba(168,85,247,0.1); color: #d8b4fe; }
+  .ptype.checkbox { background: rgba(16,185,129,0.1); color: #6ee7b7; }
+
+  .prop-notes { color: var(--text-mid); font-size: 12.5px; }
+
+  /* ── CODE BLOCK ── */
+  .code-block {
+    background: #0a0c0e;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin: 16px 0 24px;
+    overflow-x: auto;
+  }
+
+  .code-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  .code-block code {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.9;
+    color: #a0b4c8;
+    white-space: pre;
+    display: block;
+  }
+
+  .code-block code .kw { color: var(--accent); }
+  .code-block code .val { color: var(--accent3); }
+  .code-block code .str { color: #7dd3fc; }
+  .code-block code .cmt { color: var(--text-dim); font-style: italic; }
+  .code-block code .lbl { color: #c084fc; }
+  .code-block code .key { color: #e0e8f0; font-weight: 600; }
+
+  /* ── VIEW CARDS ── */
+  .view-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin: 20px 0;
+  }
+
+  .view-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px;
+  }
+
+  .view-card-type {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .view-card-type.table { color: var(--accent2); }
+  .view-card-type.board { color: var(--accent3); }
+  .view-card-type.gant { color: var(--accent); }
+  .view-card-type.gallery { color: var(--accent5); }
+  .view-card-type.list { color: #f87171; }
+  .view-card-type.filter { color: #fde68a; }
+
+  .view-card-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+
+  .view-card p {
+    font-size: 12.5px;
+    color: var(--text-mid);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  /* ── WORKFLOW ── */
+  .workflow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 24px 0;
+    position: relative;
+  }
+
+  .workflow::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 40px;
+    bottom: 40px;
+    width: 1px;
+    background: var(--border2);
+  }
+
+  .wf-step {
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 20px;
+    padding: 20px 0;
+  }
+
+  .wf-num {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    flex-shrink: 0;
+    z-index: 1;
+    position: relative;
+  }
+
+  .wf-content { padding-top: 8px; }
+
+  .wf-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+
+  .wf-desc {
+    font-size: 13px;
+    color: var(--text-mid);
+    line-height: 1.65;
+  }
+
+  .wf-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+
+  .wf-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    color: var(--text-mid);
+  }
+
+  /* ── STATUS TABLE ── */
+  .status-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+  }
+
+  .status-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    border-top: 3px solid transparent;
+  }
+
+  .status-card.draft { border-top-color: var(--text-dim); }
+  .status-card.active { border-top-color: var(--accent2); }
+  .status-card.baselined { border-top-color: var(--accent3); }
+  .status-card.closed { border-top-color: var(--text-mid); }
+  .status-card.change { border-top-color: var(--accent); }
+  .status-card.verify { border-top-color: var(--accent5); }
+  .status-card.verified { border-top-color: var(--accent3); }
+  .status-card.waived { border-top-color: var(--accent4); }
+
+  .status-name {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+
+  .status-desc {
+    font-size: 11.5px;
+    color: var(--text-mid);
+    line-height: 1.5;
+  }
+
+  /* ── TEMPLATE BLOCK ── */
+  .template-block {
+    background: #0a0c0e;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 20px 0;
+  }
+
+  .template-header {
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .template-header span {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  .template-header strong {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e0e8f0;
+  }
+
+  .template-body {
+    padding: 20px 24px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 2;
+    color: #8a9ab0;
+    white-space: pre;
+  }
+
+  .template-body .h1 { color: #fff; font-size: 14px; font-weight: 600; }
+  .template-body .h2 { color: #c0ccd8; font-size: 13px; }
+  .template-body .prop { color: var(--accent3); }
+  .template-body .propval { color: var(--accent2); }
+  .template-body .toggle { color: var(--accent5); }
+  .template-body .placeholder { color: var(--text-dim); font-style: italic; }
+
+  /* ── RELATIONS DIAGRAM ── */
+  .rel-diagram {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 32px;
+    margin: 24px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .rel-row {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .rel-node {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 10px 18px;
+    text-align: center;
+    min-width: 130px;
+  }
+
+  .rel-node .node-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .rel-node .node-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .rel-node.t1 { border-color: rgba(239,68,68,0.4); }
+  .rel-node.t2 { border-color: rgba(232,160,32,0.4); }
+  .rel-node.t3 { border-color: rgba(59,130,246,0.4); }
+  .rel-node.t4 { border-color: rgba(16,185,129,0.4); }
+  .rel-node.chg { border-color: rgba(168,85,247,0.4); }
+  .rel-node.vv { border-color: rgba(239,68,68,0.3); }
+
+  .rel-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    margin: 6px 0;
+  }
+
+  .rel-arrow .arrow-line {
+    width: 1px;
+    height: 28px;
+    background: var(--border2);
+  }
+
+  .rel-arrow .arrow-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .rel-arrow .arrow-tip {
+    color: var(--text-dim);
+    font-size: 10px;
+    line-height: 1;
+  }
+
+  .rel-horiz {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .rel-h-line {
+    height: 1px;
+    width: 24px;
+    background: var(--border2);
+  }
+
+  /* ── TABLE ── */
+  table.styled {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 24px;
+    font-size: 13px;
+  }
+
+  table.styled th {
+    background: var(--bg3);
+    padding: 10px 14px;
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+
+  table.styled td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+
+  table.styled tr:last-child td { border-bottom: none; }
+
+  table.styled td:first-child {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: #e0e8f0;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  /* ── BADGE ── */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  .badge.r { background: rgba(239,68,68,0.15); color: #f87171; }
+  .badge.y { background: rgba(232,160,32,0.15); color: #fbbf24; }
+  .badge.g { background: rgba(16,185,129,0.15); color: #34d399; }
+  .badge.b { background: rgba(59,130,246,0.15); color: #60a5fa; }
+
+  /* ── UL/OL ── */
+  .section ul, .section ol {
+    padding-left: 0;
+    list-style: none;
+    margin: 12px 0;
+  }
+
+  .section ul li, .section ol li {
+    padding: 4px 0 4px 20px;
+    position: relative;
+    font-size: 13.5px;
+    color: var(--text);
+    line-height: 1.65;
+  }
+
+  .section ul li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--text-dim);
+    font-family: var(--mono);
+  }
+
+  .section ol { counter-reset: ol-counter; }
+  .section ol li::before {
+    counter-increment: ol-counter;
+    content: counter(ol-counter) '.';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 56px 0;
+  }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3f4a56; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+<!-- ── SIDEBAR ── -->
+<nav class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-brand">Implementation Guide</div>
+    <div class="sidebar-title">Requirements Management in Notion</div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section-label">Architecture</div>
+    <a class="nav-link" href="#workspace"><span class="nav-num">01</span>Workspace Structure</a>
+    <a class="nav-link" href="#databases"><span class="nav-num">02</span>Database Schema</a>
+    <a class="nav-link" href="#relations"><span class="nav-num">03</span>Relations & Rollups</a>
+
+    <div class="nav-section-label">Templates</div>
+    <a class="nav-link" href="#req-template"><span class="nav-num">04</span>Requirement Page Template</a>
+    <a class="nav-link" href="#change-template"><span class="nav-num">05</span>Change Request Template</a>
+    <a class="nav-link" href="#review-template"><span class="nav-num">06</span>Design Review Template</a>
+
+    <div class="nav-section-label">Workflows</div>
+    <a class="nav-link" href="#lifecycle"><span class="nav-num">07</span>Requirement Lifecycle</a>
+    <a class="nav-link" href="#change-flow"><span class="nav-num">08</span>Change Control Flow</a>
+    <a class="nav-link" href="#vv-flow"><span class="nav-num">09</span>V&V Traceability</a>
+
+    <div class="nav-section-label">Views & Dashboards</div>
+    <a class="nav-link" href="#views"><span class="nav-num">10</span>Database Views</a>
+    <a class="nav-link" href="#dashboard"><span class="nav-num">11</span>Program Dashboard</a>
+
+    <div class="nav-section-label">Operations</div>
+    <a class="nav-link" href="#conventions"><span class="nav-num">12</span>Naming Conventions</a>
+    <a class="nav-link" href="#review-cadence"><span class="nav-num">13</span>Review Cadence</a>
+    <a class="nav-link" href="#wiki-alt"><span class="nav-num">14</span>Confluence/Wiki Alt.</a>
+  </div>
+</nav>
+
+<!-- ── MAIN CONTENT ── -->
+<main class="main">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-tag">Engineering Operations</div>
+    <h1>Requirements Management<br>in Notion</h1>
+    <p class="hero-sub">A complete implementation guide for hardware startups — tiered databases, traceability relations, change control workflows, and V&V tracking built on Notion's relational database system.</p>
+    <div class="hero-chips">
+      <div class="chip">Notion</div>
+      <div class="chip">Confluence</div>
+      <div class="chip">4-Tier Architecture</div>
+      <div class="chip">Change Control</div>
+      <div class="chip">V&amp;V Traceability</div>
+    </div>
+  </div>
+
+
+  <!-- ── 01 WORKSPACE STRUCTURE ── -->
+  <div class="section" id="workspace">
+    <div class="section-header">
+      <div class="section-num">01</div>
+      <h2>Workspace Structure</h2>
+    </div>
+
+    <p>Your Notion workspace is organized as a top-level program space containing six linked databases plus a set of static reference pages. Everything lives under a single parent page so permissions, exports, and search all scope correctly.</p>
+
+    <div class="code-block">
+      <div class="code-label">Notion Sidebar Hierarchy</div>
+      <code><span class="kw">📁 [PROGRAM NAME]</span>  ← top-level parent page
+│
+├── <span class="lbl">⚡ Program Dashboard</span>          ← linked views of all databases
+│
+├── <span class="kw">📊 Databases</span>  ← all 6 databases live here (linked elsewhere)
+│   ├── <span class="val">T1 — Mission Requirements</span>
+│   ├── <span class="val">T2 — System Requirements</span>
+│   ├── <span class="val">T3 — Subsystem Requirements</span>
+│   ├── <span class="val">T4 — Implementation Requirements</span>
+│   ├── <span class="val">Change Requests</span>
+│   └── <span class="val">V&amp;V Records</span>
+│
+├── <span class="kw">📋 Design Reviews</span>
+│   ├── SRR — [Date]
+│   ├── PDR — [Date]
+│   ├── CDR — [Date]
+│   └── [template]
+│
+├── <span class="kw">📖 Reference</span>
+│   ├── Abbreviations &amp; Definitions
+│   ├── Verification Methods Guide
+│   ├── Req Writing Style Guide
+│   └── Tier Ownership Map
+│
+└── <span class="kw">🗂️ Archive</span>
+    └── Superseded Requirements</code>
+    </div>
+
+    <div class="callout">
+      <div class="callout-label">Key Principle</div>
+      <p>Never duplicate database entries. Create <strong>linked views</strong> (Notion: "Link to database") to show filtered subsets of a database on different pages. A requirement lives in exactly one place; every other appearance is a view.</p>
+    </div>
+
+    <h3>Access Permissions</h3>
+    <p>Set permissions at the program top-level page, then override per section:</p>
+
+    <table class="styled">
+      <thead><tr><th>Role</th><th>T1–T2 DBs</th><th>T3–T4 DBs</th><th>Change Requests</th><th>V&V Records</th></tr></thead>
+      <tbody>
+        <tr><td>Program Lead</td><td>Full access</td><td>Full access</td><td>Full access</td><td>Full access</td></tr>
+        <tr><td>Systems Eng.</td><td>Can edit</td><td>Can edit</td><td>Can edit</td><td>Can edit</td></tr>
+        <tr><td>Subsystem Lead</td><td>Can comment</td><td>Can edit (own)</td><td>Can create</td><td>Can edit (own)</td></tr>
+        <tr><td>Contributor</td><td>Can view</td><td>Can comment</td><td>Can view</td><td>Can view</td></tr>
+        <tr><td>External / Review</td><td>Can view</td><td>Can view</td><td>No access</td><td>No access</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr class="divider">
+
+
+  <!-- ── 02 DATABASE SCHEMA ── -->
+  <div class="section" id="databases">
+    <div class="section-header">
+      <div class="section-num">02</div>
+      <h2>Database Schema</h2>
+    </div>
+
+    <p>Each tier is a separate Notion database. Properties are carefully chosen: not every field needs to be on every tier. Below is the complete property spec for each.</p>
+
+    <!-- T1 -->
+    <h3>Tier 1 — Mission Requirements</h3>
+    <p>These are outcomes-based requirements tied directly to the customer or mission need. Change velocity is very low; every T2 requirement must trace to one of these.</p>
+
+    <div class="db-block">
+      <div class="db-header">
+        <div class="db-icon t1">🎯</div>
+        <div class="db-name">T1 — Mission Requirements</div>
+        <div class="db-desc">~20–50 rows per program</div>
+      </div>
+      <div class="db-body">
+        <div class="prop-row prop-header"><div>Property</div><div>Type</div><div>Notes</div></div>
+        <div class="prop-row"><div>Req ID</div><div><span class="ptype txt">Title</span></div><div class="prop-notes">Auto-named: MR-001, MR-002… Use a formula or manual prefix. Never auto-number with Notion's built-in ID — it doesn't let you set prefixes cleanly.</div></div>
+        <div class="prop-row"><div>Requirement Statement</div><div><span class="ptype txt">Text</span></div><div class="prop-notes">The "shall" statement. Single, atomic, measurable. Lives in the page body for long form; summary version as a text property for table views.</div></div>
+        <div class="prop-row"><div>Status</div><div><span class="ptype sel">Select</span></div><div class="prop-notes">Draft → Active → Baselined → Closed. Color-coded.</div></div>
+        <div class="prop-row"><div>Priority</div><div><span class="ptype sel">Select</span></div><div class="prop-notes">Threshold / Objective / Desired (better than High/Med/Low for hardware programs)</div></div>
+        <div class="prop-row"><div>Source</div><div><span class="ptype sel">Select</span></div><div class="prop-notes">Customer, Regulatory, Safety, Internal. Drives how immovable the req is.</div></div>
+        <div class="prop-row"><div>Source Document</div><div><span class="ptype url">URL</span></div><div class="prop-notes">Link to contract, SOW, customer spec, or regulatory standard.</div></div>
+        <div class="prop-row"><div>Owner</div><div><span class="ptype person">Person</span></div><div class="prop-notes">Accountable for satisfying and verifying this requirement.</div></div>
+        <div class="prop-row"><div>Baselined Date</div><div><span class="ptype date">Date</span></div><div class="prop-notes">Set when status moves to Baselined. Immutable after this point without a Change Request.</div></div>
+        <div class="prop-row"><div>T2 Children</div><div><span class="ptype rel">Relation → T2</span></div><div class="prop-notes">Links to all T2 requirements that flow from this T1. Rollup shows count.</div></div>
+        <div class="prop-row"><div>T2 Coverage</div><div><span class="ptype rl">Rollup</span></div><div class="prop-notes">Count of linked T2 children. Alert if = 0 after PDR — unallocated T1 is a red flag.</div></div>
+        <div class="prop-row"><div>V&V Status</div><div><span class="ptype rl">Rollup</span></div><div class="prop-notes">Rollup from V&V Records via T2 children. Shows % verified.</div></div>
+        <div class="prop-row"><div>Rationale</div><div><span class="ptype txt">Text</span></div><div class="prop-notes">Why does this requirement exist? What happens if it's not met?</div></div>
+        <div class="prop-row"><div>Last Reviewed</div><div><span class="ptype date">Date</span></div><div class="prop-notes">Stamp at each design review.</div></div>
+      </div>
+    </div>
+
+    <!-- T2 -->
+    <h3>Tier 2 — System Requirements</h3>
+    <p>System-level requirements: power/mass/timing budgets, interface definitions, reliability allocations. These are the backbone of the system architecture.</p>
+
+    <div class="db-block">
+      <div class="db-header">
+        <div class="db-icon t2">⚙️</div>
+        <div class="db-name">T2 — System Requirements</div>
+        <div class="db-desc">~100–300 rows per program</div>
+      </div>
+      <div class="db-body">
+        <div class="prop-row prop-header"><div>Property</div><div>Type</div><div>Notes</div></div>
+        <div class="prop-row"><div>Req ID</div><div><span class="ptype txt">Title</span></div><div class="prop-notes">SR-001, SR-002… Subsystem prefix variant: PWR-001, NAV-002, COMM-003</div></div>
+        <div class="prop-row"><div>Requirement Statement</div><div><span class="ptype txt">Text</span></div><div class="prop-notes">Single "shall" statement. Full text in page body; 1-sentence summary here.</div></div>
+        <div class="prop-row"><div>Parent T1</div><div><span class="ptype rel">Relation → T1</span></div><div class="prop-notes">Every T2 must have ≥1 T1 parent. Unlinked T2s show in a filtered "Orphan" view — review and delete or link.</div></div>
+        <div class="prop-row"><div>Status</div><div><span class="ptype sel">Select</span></div><div class="prop-notes">Draft / Active / Baselined / In Change / Closed</div></div>
+        <div class="prop-row"><div>Subsystem</div><div><span class="ptype msel">Multi-select</span></div><div class="prop-notes">Tags which subsystem(s) this req applies to. Enables filtered views per subsystem.</div></div>
+        <div class="prop-row"><div>Verification Method</div><div><span class="ptype msel">Multi-select</span></div><div class="prop-notes">Test / Analysis / Inspection / Demonstration. Set at req creation, not at CDR.</div></div>
+        <div class="prop-row"><div>Verification Phase</div><div><span class="ptype sel">Select</span></div><div class="prop-notes">When will it be verified: Bench / Proto / Engineering Model / Qualification / Acceptance</div></div>
+        <div class="prop-row"><div>Owner</div><div><span class="ptype person">Person</span></div><div class="prop-notes">Subsystem lead responsible for satisfying this requirement.</div></div>
+        <div class="prop-row"><div>Margin / Budget</div><div><span class="ptype txt">Text</span></div><div class="prop-notes">For budget-type reqs: allocated value, current value, margin. e.g. "Alloc: 5W | Current: 3.8W | Margin: 24%"</div></div>
+        <div class="prop-row"><div>T3 Children</div><div><span class="ptype rel">Relation → T3</span></div><div class="prop-notes">T3 requirements that decompose this T2.</div></div>
+        <div class="prop-row"><div>V&V Records</div><div><span class="ptype rel">Relation → V&V</span></div><div class="prop-notes">Verification evidence linked directly to this requirement.</div></div>
+        <div class="prop-row"><div>V&V Status</div><div><span class="ptype sel">Select</span></div><div class="prop-notes">Not Started / Planned / In Progress / Verified / Waived. Manually updated from V&V Record.</div></div>
+        <div class="prop-row"><div>Change Requests</div><div><span class="ptype rel">Relation → CRs</span></div><div class="prop-notes">Any open or closed CRs that affect this req.</div></div>
+        <div class="prop-row"><div>ICD Reference</div><div><span class="ptype url">URL</span></div><div class="prop-notes">For interface requirements: link to the governing ICD document.</div></div>
+        <div class="prop-row"><div>Criticality</div><div><span class="ptype sel">Select</span></div><div class="prop-notes">Safety-Critical / Mission-Critical / Non-Critical. Drives review and change authority levels.</div></div>
+      </div>
+    </div>
+
+    <!-- T3 -->
+    <h3>Tier 3 — Subsystem Requirements</h3>
+    <p>What each subsystem, board, or mechanism must deliver. Change velocity is moderate — these evolve through proto and EM builds.</p>
+
+    <div class="db-block">
+      <div class="db-header">
+        <div class="db-icon t3">🔩</div>
+        <div class="db-name">T3 — Subsystem Requirements</div>
+        <div class="db-desc">~300–1000 rows per program</div>
+      </div>
+      <div class="db-body">
+        <div class="prop-row prop-header"><div>Property</div><div>Type</div><div>Notes</div></div>
+        <div class="prop-row"><div>Req ID</div><div><span class="ptype txt">Title</span></div><div class="prop-notes">Subsystem prefix: LASER-001, TDC-003, PWR-012. Prefix matches subsystem tag.</div></div>
+        <div class="prop-row"><div>Requirement Statement</div><div><span class="ptype txt">Text</span></div><div class="prop-notes">Full "shall" statement. Should be verifiable at the bench without system integration.</div></div>
+        <div class="prop-row"><div>Parent T2</div><div><span class="ptype rel">Relation → T2</span></div><div class="prop-notes">The system requirement this flows from. Required — orphan T3s are deleted at PDR.</div></div>
+        <div class="prop-row"><div>Subsystem</div><div><span class="ptype sel">Select</span></div><div class="prop-notes">Single select: Laser TX / Receiver / TDC / Scanning / Geo-Ref / Power / Data I/F</div></div>
+        <div class="prop-row"><div>Status</div><div><span class="ptype sel">Select</span></div><div class="prop-notes">Draft / Active / Baselined / In Change / Verified / Waived</div></div>
+        <div class="prop-row"><div>Owner</div><div><span class="ptype person">Person</span></div><div class="prop-notes">Engineer responsible for design-to and verification of this req.</div></div>
+        <div class="prop-row"><div>Verification Method</div><div><span class="ptype sel">Select</span></div><div class="prop-notes">Test / Analysis / Inspection / Demo — single method at this level.</div></div>
+        <div class="prop-row"><div>Test Procedure</div><div><span class="ptype url">URL</span></div><div class="prop-notes">Link to the test procedure document once written. Absence = gap.</div></div>
+        <div class="prop-row"><div>Verification Phase</div><div><span class="ptype sel">Select</span></div><div class="prop-notes">Bench / Proto / EM / Qual / Acceptance</div></div>
+        <div class="prop-row"><div>Pass Criteria</div><div><span class="ptype txt">Text</span></div><div class="prop-notes">Specific, measurable go/no-go criterion. "Peak current ≥ 28A measured at TP3 with 50Ω load."</div></div>
+        <div class="prop-row"><div>Current Value</div><div><span class="ptype txt">Text</span></div><div class="prop-notes">Latest measured/simulated value. Updated as design matures.</div></div>
+        <div class="prop-row"><div>Margin</div><div><span class="ptype txt">Text</span></div><div class="prop-notes">Current margin to requirement. Negative margin = flagged.</div></div>
+        <div class="prop-row"><div>T4 Children</div><div><span class="ptype rel">Relation → T4</span></div><div class="prop-notes">Build/impl requirements that implement this T3.</div></div>
+        <div class="prop-row"><div>V&V Records</div><div><span class="ptype rel">Relation → V&V</span></div><div class="prop-notes">Direct verification evidence.</div></div>
+        <div class="prop-row"><div>Sim/Analysis File</div><div><span class="ptype url">URL</span></div><div class="prop-notes">Link to the LTspice, ANSYS, or Python sim that supports this requirement.</div></div>
+      </div>
+    </div>
+
+    <!-- T4 -->
+    <h3>Tier 4 — Implementation Requirements</h3>
+    <p>Build specifications: tolerances, materials, assembly procedures, inspection criteria. Highest change velocity, owned by manufacturing and quality engineering.</p>
+
+    <div class="db-block">
+      <div class="db-header">
+        <div class="db-icon t4">🏭</div>
+        <div class="db-name">T4 — Implementation Requirements</div>
+        <div class="db-desc">Unlimited — scales with manufacturing complexity</div>
+      </div>
+      <div class="db-body">
+        <div class="prop-row prop-header"><div>Property</div><div>Type</div><div>Notes</div></div>
+        <div class="prop-row"><div>Req ID</div><div><span class="ptype txt">Title</span></div><div class="prop-notes">MFG-001, QA-002, ASSY-003</div></div>
+        <div class="prop-row"><div>Parent T3</div><div><span class="ptype rel">Relation → T3</span></div><div class="prop-notes">Required traceability link.</div></div>
+        <div class="prop-row"><div>Type</div><div><span class="ptype sel">Select</span></div><div class="prop-notes">Dimensional / Material / Process / ESD / Cleanliness / Inspection / Test</div></div>
+        <div class="prop-row"><div>Specification Value</div><div><span class="ptype txt">Text</span></div><div class="prop-notes">The exact spec: "Solder paste: Kester R276, 0.012" stencil. Reflow peak: 245°C ±5°C."</div></div>
+        <div class="prop-row"><div>Drawing Reference</div><div><span class="ptype url">URL</span></div><div class="prop-notes">Link to CAD drawing or PCB fab note where this spec appears.</div></div>
+        <div class="prop-row"><div>Owner</div><div><span class="ptype person">Person</span></div><div class="prop-notes">MFG or QA engineer.</div></div>
+        <div class="prop-row"><div>Status</div><div><span class="ptype sel">Select</span></div><div class="prop-notes">Draft / Active / Superseded</div></div>
+        <div class="prop-row"><div>Applies To Build</div><div><span class="ptype msel">Multi-select</span></div><div class="prop-notes">Proto-1 / Proto-2 / EM / Qual / Production. Requirements may differ between build phases.</div></div>
+        <div class="prop-row"><div>Inspection Record</div><div><span class="ptype url">URL</span></div><div class="prop-notes">Link to the FAI or inspection report confirming compliance.</div></div>
+      </div>
+    </div>
+
+    <!-- Change Requests -->
+    <h3>Change Requests Database</h3>
+
+    <div class="db-block">
+      <div class="db-header">
+        <div class="db-icon chg">🔄</div>
+        <div class="db-name">Change Requests</div>
+        <div class="db-desc">Tracks all proposed changes to baselined requirements</div>
+      </div>
+      <div class="db-body">
+        <div class="prop-row prop-header"><div>Property</div><div>Type</div><div>Notes</div></div>
+        <div class="prop-row"><div>CR ID</div><div><span class="ptype txt">Title</span></div><div class="prop-notes">CR-001, CR-002…</div></div>
+        <div class="prop-row"><div>Title</div><div><span class="ptype txt">Text</span></div><div class="prop-notes">Short description of what's changing.</div></div>
+        <div class="prop-row"><div>Status</div><div><span class="ptype sel">Select</span></div><div class="prop-notes">Submitted / Under Review / Approved / Rejected / Implemented / Closed</div></div>
+        <div class="prop-row"><div>Class</div><div><span class="ptype sel">Select</span></div><div class="prop-notes">Class I (form/fit/function) / Class II (within margin) — determines review authority</div></div>
+        <div class="prop-row"><div>Affected Requirements</div><div><span class="ptype rel">Relation → T1/T2/T3</span></div><div class="prop-notes">Multi-database relation. Every req impacted must be linked before approval.</div></div>
+        <div class="prop-row"><div>Submitted By</div><div><span class="ptype person">Person</span></div><div class="prop-notes"></div></div>
+        <div class="prop-row"><div>Submitted Date</div><div><span class="ptype date">Date</span></div><div class="prop-notes"></div></div>
+        <div class="prop-row"><div>Decision Date</div><div><span class="ptype date">Date</span></div><div class="prop-notes">Target decision date — SLA: Class I ≤ 5 days, Class II ≤ 2 days</div></div>
+        <div class="prop-row"><div>Decision Authority</div><div><span class="ptype person">Person</span></div><div class="prop-notes">Who must approve: Program Lead for Class I, Subsystem Lead for Class II</div></div>
+        <div class="prop-row"><div>Impact: Schedule</div><div><span class="ptype sel">Select</span></div><div class="prop-notes">None / 1–5 days / 1–2 wks / 2–4 wks / >1 month</div></div>
+        <div class="prop-row"><div>Impact: Cost</div><div><span class="ptype txt">Text</span></div><div class="prop-notes">Estimated cost delta in $.</div></div>
+        <div class="prop-row"><div>Impact: Risk</div><div><span class="ptype sel">Select</span></div><div class="prop-notes">Reduces Risk / Neutral / Increases Risk</div></div>
+        <div class="prop-row"><div>Disposition</div><div><span class="ptype txt">Text</span></div><div class="prop-notes">Free text: rationale for approval or rejection. Required field before closing.</div></div>
+        <div class="prop-row"><div>V&V Re-run Required</div><div><span class="ptype checkbox">Checkbox</span></div><div class="prop-notes">If checked, V&V Records linked to affected reqs are marked "Re-verification Required"</div></div>
+      </div>
+    </div>
+
+    <!-- V&V -->
+    <h3>V&V Records Database</h3>
+
+    <div class="db-block">
+      <div class="db-header">
+        <div class="db-icon test">✅</div>
+        <div class="db-name">V&amp;V Records</div>
+        <div class="db-desc">One record per test event / analysis / inspection</div>
+      </div>
+      <div class="db-body">
+        <div class="prop-row prop-header"><div>Property</div><div>Type</div><div>Notes</div></div>
+        <div class="prop-row"><div>VV ID</div><div><span class="ptype txt">Title</span></div><div class="prop-notes">VV-001, VV-002… One record per verification event, not per requirement.</div></div>
+        <div class="prop-row"><div>Title</div><div><span class="ptype txt">Text</span></div><div class="prop-notes">"Laser driver peak current bench test — Proto-1 Build"</div></div>
+        <div class="prop-row"><div>Method</div><div><span class="ptype sel">Select</span></div><div class="prop-notes">Test / Analysis / Inspection / Demonstration</div></div>
+        <div class="prop-row"><div>Requirements Verified</div><div><span class="ptype rel">Relation → T2/T3</span></div><div class="prop-notes">All requirements closed by this single test event. One test can verify multiple reqs.</div></div>
+        <div class="prop-row"><div>Result</div><div><span class="ptype sel">Select</span></div><div class="prop-notes">Pass / Fail / Conditional Pass / Pending</div></div>
+        <div class="prop-row"><div>Date</div><div><span class="ptype date">Date</span></div><div class="prop-notes">Date test was executed or analysis was completed.</div></div>
+        <div class="prop-row"><div>Performed By</div><div><span class="ptype person">Person</span></div><div class="prop-notes"></div></div>
+        <div class="prop-row"><div>Witness</div><div><span class="ptype person">Person</span></div><div class="prop-notes">For safety-critical reqs, independent witness required.</div></div>
+        <div class="prop-row"><div>Build / Unit Under Test</div><div><span class="ptype sel">Select</span></div><div class="prop-notes">Proto-1 SN001 / EM-1 / etc. Tracks which hardware revision was tested.</div></div>
+        <div class="prop-row"><div>Evidence File</div><div><span class="ptype url">URL</span></div><div class="prop-notes">Link to test report, data file, photo, or simulation output. Required before marking Pass.</div></div>
+        <div class="prop-row"><div>Deviations / Notes</div><div><span class="ptype txt">Text</span></div><div class="prop-notes">Any test non-conformances, environmental deltas, or caveats to the result.</div></div>
+        <div class="prop-row"><div>Retest Required</div><div><span class="ptype checkbox">Checkbox</span></div><div class="prop-notes">Set by change control if a subsequent CR invalidates this evidence.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+
+  <!-- ── 03 RELATIONS ── -->
+  <div class="section" id="relations">
+    <div class="section-header">
+      <div class="section-num">03</div>
+      <h2>Relations &amp; Rollups</h2>
+    </div>
+
+    <p>Relations are the structural backbone that make Notion a real requirements management system rather than a spreadsheet. Set them up correctly and traceability becomes automatic.</p>
+
+    <div class="rel-diagram">
+      <div class="rel-row">
+        <div class="rel-node t1">
+          <div class="node-label">Tier 1</div>
+          <div class="node-name">Mission Reqs</div>
+        </div>
+      </div>
+      <div class="rel-arrow">
+        <div class="arrow-label">flows to</div>
+        <div class="arrow-line"></div>
+        <div class="arrow-tip">▼</div>
+      </div>
+      <div class="rel-row">
+        <div class="rel-node t2">
+          <div class="node-label">Tier 2</div>
+          <div class="node-name">System Reqs</div>
+        </div>
+      </div>
+      <div class="rel-arrow">
+        <div class="arrow-label">decomposes to</div>
+        <div class="arrow-line"></div>
+        <div class="arrow-tip">▼</div>
+      </div>
+      <div class="rel-row">
+        <div class="rel-node t3">
+          <div class="node-label">Tier 3</div>
+          <div class="node-name">Subsystem Reqs</div>
+        </div>
+      </div>
+      <div class="rel-arrow">
+        <div class="arrow-label">specifies</div>
+        <div class="arrow-line"></div>
+        <div class="arrow-tip">▼</div>
+      </div>
+      <div class="rel-row" style="gap:40px">
+        <div class="rel-node t4">
+          <div class="node-label">Tier 4</div>
+          <div class="node-name">Impl. Reqs</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="rel-h-line"></div>
+          <div class="rel-node chg">
+            <div class="node-label">Change</div>
+            <div class="node-name">Change Req.</div>
+          </div>
+          <div class="rel-h-line"></div>
+          <div class="rel-node vv">
+            <div class="node-label">Evidence</div>
+            <div class="node-name">V&amp;V Record</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Setting Up Two-Way Relations in Notion</h3>
+    <p>Notion relations are bidirectional. When you create a relation from T2 → T1, Notion automatically creates the reverse property in T1. Name both sides clearly:</p>
+
+    <div class="code-block">
+      <div class="code-label">Relation Setup Checklist</div>
+      <code><span class="cmt">// T2 database</span>
+<span class="kw">Property:</span> <span class="str">"Parent T1"</span>  → Relation to T1 DB
+<span class="cmt">// Notion auto-creates in T1:</span>
+<span class="kw">Property:</span> <span class="str">"T2 Children"</span>  ← rename this immediately
+
+<span class="cmt">// T3 database</span>
+<span class="kw">Property:</span> <span class="str">"Parent T2"</span>  → Relation to T2 DB
+<span class="cmt">// Rename reverse in T2 to:</span>
+<span class="kw">Property:</span> <span class="str">"T3 Children"</span>
+
+<span class="cmt">// T3 ↔ V&V (bidirectional many-to-many)</span>
+<span class="kw">Property:</span> <span class="str">"V&amp;V Records"</span>  → Relation to V&amp;V DB
+<span class="cmt">// Rename reverse in V&V to:</span>
+<span class="kw">Property:</span> <span class="str">"Requirements Verified"</span>
+
+<span class="cmt">// T2 ↔ Change Requests</span>
+<span class="kw">Property:</span> <span class="str">"Change Requests"</span>  → Relation to CR DB
+<span class="cmt">// Rename reverse in CRs to:</span>
+<span class="kw">Property:</span> <span class="str">"Affected Requirements"</span></code>
+    </div>
+
+    <h3>Key Rollups to Configure</h3>
+    <p>Rollups aggregate data from related database items. These give you real-time program health at a glance:</p>
+
+    <table class="styled">
+      <thead><tr><th>On Database</th><th>Rollup Property</th><th>Source Relation</th><th>Aggregation</th><th>Use</th></tr></thead>
+      <tbody>
+        <tr><td>T1</td><td>T2 Count</td><td>T2 Children</td><td>Count all</td><td>Flag T1 reqs with no T2 children (unallocated)</td></tr>
+        <tr><td>T1</td><td>Verified %</td><td>T2 Children → V&V Status</td><td>% of "Verified"</td><td>Overall closure rate per mission requirement</td></tr>
+        <tr><td>T2</td><td>T3 Count</td><td>T3 Children</td><td>Count all</td><td>Decomposition completeness</td></tr>
+        <tr><td>T2</td><td>Open CRs</td><td>Change Requests</td><td>Count where Status = "Submitted" or "Under Review"</td><td>Flag reqs with open changes</td></tr>
+        <tr><td>T3</td><td>VV Result</td><td>V&V Records</td><td>Show unique values of Result</td><td>Quick pass/fail indicator on the T3 row</td></tr>
+        <tr><td>T3</td><td>Has Evidence</td><td>V&V Records</td><td>Count all > 0</td><td>Flag T3 reqs with no evidence attached</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr class="divider">
+
+
+  <!-- ── 04 REQUIREMENT TEMPLATE ── -->
+  <div class="section" id="req-template">
+    <div class="section-header">
+      <div class="section-num">04</div>
+      <h2>Requirement Page Template</h2>
+    </div>
+
+    <p>Every requirement is a Notion page within its tier database. The database properties (above) live in the right panel. The page body follows this template for the detail that can't fit in properties. Create this as a Notion Template within each database.</p>
+
+    <div class="template-block">
+      <div class="template-header">
+        <span>Notion Page Template</span>
+        <strong>T3 Subsystem Requirement</strong>
+      </div>
+      <div class="template-body"><span class="h1">[SUBSYS-###] [Short Requirement Title]</span>
+
+<span class="h2">── REQUIREMENT STATEMENT ──────────────────────────────</span>
+The [system/subsystem] <span class="kw">shall</span> [action verb] [measurable parameter]
+[threshold] [under conditions].
+
+<span class="placeholder">// One sentence. One "shall." If you need "and" — split it.</span>
+
+<span class="h2">── RATIONALE ──────────────────────────────────────────</span>
+<span class="placeholder">// Why does this requirement exist?
+// What failure mode does it prevent?
+// Reference the mission context.</span>
+
+<span class="h2">── PARENT REQUIREMENT ─────────────────────────────────</span>
+<span class="propval">↑ [SR-###] [Parent T2 name]</span>     <span class="placeholder">// linked via relation</span>
+<span class="propval">↑↑ [MR-###] [Parent T1 name]</span>    <span class="placeholder">// visible via rollup</span>
+
+<span class="h2">── VERIFICATION ───────────────────────────────────────</span>
+<span class="prop">Method:</span>     <span class="propval">Test / Analysis / Inspection / Demo</span>
+<span class="prop">Phase:</span>      <span class="propval">Bench / Proto / EM / Qual / Acceptance</span>
+<span class="prop">Pass Criteria:</span>
+  <span class="placeholder">// Exact go/no-go criterion. Quantitative.
+  // "Peak current ≥ 28A measured at TP3 under 50Ω load
+  //  with Vbus = 48V ±1V, at 25°C ambient."</span>
+
+<span class="prop">Test Procedure:</span> <span class="propval">[link]</span>        <span class="placeholder">// populate before first test</span>
+<span class="prop">Evidence:</span>       <span class="propval">[link]</span>        <span class="placeholder">// populated when test complete</span>
+
+<span class="h2">── CURRENT DESIGN STATUS ──────────────────────────────</span>
+<span class="prop">As-Designed Value:</span> <span class="placeholder">// from simulation or analysis</span>
+<span class="prop">As-Tested Value:</span>   <span class="placeholder">// from bench measurement</span>
+<span class="prop">Margin:</span>            <span class="placeholder">// positive = compliant</span>
+<span class="prop">Notes:</span>             <span class="placeholder">// worst-case conditions? derating?</span>
+
+<span class="h2">── CHANGE HISTORY ─────────────────────────────────────</span>
+<span class="toggle">▸ Change History</span>  <span class="placeholder">// toggle block — add entries chronologically</span>
+  <span class="placeholder">| Rev | Date | CR # | Change Description | Author |
+  |-----|------|------|-------------------|--------|
+  | A   | ...  | —    | Initial release   | [name] |</span>
+
+<span class="h2">── RELATED ITEMS ──────────────────────────────────────</span>
+<span class="toggle">▸ Related T4 Impl. Reqs</span>    <span class="propval">[linked view of T4 children]</span>
+<span class="toggle">▸ Related V&amp;V Records</span>      <span class="propval">[linked view of V&V records]</span>
+<span class="toggle">▸ Design Files</span>
+  <span class="placeholder">// LTspice sim, KiCad project, ANSYS model, Python script</span>
+
+<span class="h2">── COMMENTS / REVIEW NOTES ────────────────────────────</span>
+<span class="placeholder">// Use Notion's comment feature for inline review feedback
+// Resolve comments when addressed, don't delete them</span></div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+
+  <!-- ── 05 CHANGE REQUEST TEMPLATE ── -->
+  <div class="section" id="change-template">
+    <div class="section-header">
+      <div class="section-num">05</div>
+      <h2>Change Request Page Template</h2>
+    </div>
+
+    <div class="template-block">
+      <div class="template-header">
+        <span>Notion Page Template</span>
+        <strong>Change Request</strong>
+      </div>
+      <div class="template-body"><span class="h1">CR-### [Short Title of Change]</span>
+
+<span class="h2">── PROBLEM STATEMENT ──────────────────────────────────</span>
+<span class="placeholder">// What is wrong with the current requirement?
+// Test data, field observation, design analysis, customer input?
+// Be specific — include measurements, failure modes, ref docs.</span>
+
+<span class="h2">── PROPOSED CHANGE ────────────────────────────────────</span>
+<span class="prop">Current Text (Req [ID]):</span>
+  <span class="placeholder">"The [subsystem] shall [current requirement text]"</span>
+
+<span class="prop">Proposed Text:</span>
+  <span class="placeholder">"The [subsystem] shall [revised requirement text]"</span>
+
+<span class="prop">Other Affected Requirements:</span>
+  <span class="propval">↳ [SR-###] — [how it's affected]
+  ↳ [LASER-###] — [how it's affected]</span>
+
+<span class="h2">── IMPACT ANALYSIS ────────────────────────────────────</span>
+<span class="prop">Schedule Impact:</span>  <span class="placeholder">X days / none</span>
+<span class="prop">Cost Impact:</span>      <span class="placeholder">$X / none</span>
+<span class="prop">Risk Change:</span>      <span class="placeholder">Increases / Neutral / Reduces — explain</span>
+<span class="prop">Hardware Impact:</span>  <span class="placeholder">PCB respin? BOM change? Rework only?</span>
+<span class="prop">V&amp;V Impact:</span>      <span class="placeholder">Which tests need to be re-run?</span>
+<span class="prop">Downstream Impact:</span> <span class="placeholder">Does this affect ICDs, customer deliverables, other subsystems?</span>
+
+<span class="h2">── ALTERNATIVES CONSIDERED ────────────────────────────</span>
+<span class="placeholder">// What other options were evaluated?
+// Why is this the preferred approach?</span>
+
+<span class="h2">── APPROVAL ───────────────────────────────────────────</span>
+<span class="prop">Class:</span>     <span class="propval">Class I / Class II</span>
+<span class="prop">Authority:</span> <span class="propval">[Name, Role]</span>
+<span class="prop">Decision:</span>  <span class="propval">Approved / Rejected / Deferred</span>
+<span class="prop">Date:</span>      <span class="propval">___</span>
+<span class="prop">Rationale:</span>
+  <span class="placeholder">// Decision rationale — required for both approvals and rejections.
+  // Rejections must explain what alternative path was chosen instead.</span>
+
+<span class="h2">── IMPLEMENTATION CHECKLIST ───────────────────────────</span>
+<span class="placeholder">☐ Requirement text updated in database
+☐ Traceability links verified
+☐ Downstream T3/T4 reqs updated
+☐ Test procedures updated
+☐ V&amp;V records flagged for retest
+☐ Stakeholders notified
+☐ CR status → Implemented</span></div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+
+  <!-- ── 06 DESIGN REVIEW TEMPLATE ── -->
+  <div class="section" id="review-template">
+    <div class="section-header">
+      <div class="section-num">06</div>
+      <h2>Design Review Page Template</h2>
+    </div>
+
+    <p>Each design review (SRR, PDR, CDR) is a static Notion page in the Design Reviews section that embeds live filtered views from the requirements databases. This means the review page always shows current state — not a snapshot you had to manually update.</p>
+
+    <div class="callout blue">
+      <div class="callout-label">Notion Technique</div>
+      <p>Use <strong>"Create linked database"</strong> on the review page and apply filters (e.g. Status = "Draft", V&V Status = "Not Started") to show only the data relevant to that review gate. The linked view is live — it updates as engineers work.</p>
+    </div>
+
+    <div class="template-block">
+      <div class="template-header">
+        <span>Design Review Page</span>
+        <strong>Preliminary Design Review (PDR)</strong>
+      </div>
+      <div class="template-body"><span class="h1">PDR — Preliminary Design Review</span>
+<span class="prop">Date:</span>     <span class="propval">___</span>
+<span class="prop">Chairs:</span>   <span class="propval">[Program Lead, Systems Eng.]</span>
+<span class="prop">Location:</span> <span class="propval">___</span>
+<span class="prop">Status:</span>   <span class="propval">Scheduled / In Progress / Complete / Action Items Open</span>
+
+<span class="h2">── ENTRY CRITERIA (must be met to hold review) ────────</span>
+<span class="placeholder">☐ All T1 requirements Baselined
+☐ All T2 requirements Active or Baselined
+☐ T3 requirements drafted for all subsystems (≥80%)
+☐ Preliminary verification plan complete
+☐ Architecture trade studies complete and documented
+☐ No open Safety-Critical Sev-1 issues</span>
+
+<span class="h2">── LIVE REQUIREMENTS STATUS ───────────────────────────</span>
+<span class="toggle">▸ T1 Requirements — Status Overview</span>
+  <span class="placeholder">[Linked view of T1 DB — grouped by Status]</span>
+
+<span class="toggle">▸ T2 Requirements — Unallocated (T3 Children = 0)</span>
+  <span class="placeholder">[Linked view of T2 DB — filter: T3 Count = 0]</span>
+
+<span class="toggle">▸ T3 Requirements — Missing Verification Method</span>
+  <span class="placeholder">[Linked view of T3 DB — filter: Verification Method is empty]</span>
+
+<span class="toggle">▸ Open Change Requests at PDR</span>
+  <span class="placeholder">[Linked view of CR DB — filter: Status = Submitted or Under Review]</span>
+
+<span class="h2">── REVIEW AGENDA ──────────────────────────────────────</span>
+<span class="placeholder">1. Mission Requirements walkthrough (T1)         [30 min]
+2. System architecture and requirements flow (T2) [45 min]
+3. Subsystem requirements review by subsystem     [90 min]
+4. Budget rollups: power, mass, timing            [20 min]
+5. Verification planning status                   [20 min]
+6. Open issues and risks                          [20 min]
+7. Action items and exit criteria                 [15 min]</span>
+
+<span class="h2">── ACTION ITEMS ───────────────────────────────────────</span>
+<span class="placeholder">| # | Action | Owner | Due | Status |
+|---|--------|-------|-----|--------|
+| 1 |        |       |     |        |</span>
+
+<span class="h2">── EXIT CRITERIA (must be met to exit PDR) ────────────</span>
+<span class="placeholder">☐ All PDR action items closed or accepted with due dates
+☐ T2 requirements baselined
+☐ All T2 requirements have ≥1 T3 child
+☐ All T3 requirements have a Verification Method assigned
+☐ Verification plan draft complete
+☐ Program Lead sign-off recorded below
+
+Sign-off: _________________________  Date: ________</span></div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+
+  <!-- ── 07 LIFECYCLE ── -->
+  <div class="section" id="lifecycle">
+    <div class="section-header">
+      <div class="section-num">07</div>
+      <h2>Requirement Lifecycle</h2>
+    </div>
+
+    <p>Every requirement moves through a defined status lifecycle. The transitions have explicit triggers and owners — this prevents requirements from getting stuck in ambiguous "in progress" states.</p>
+
+    <div class="status-grid">
+      <div class="status-card draft">
+        <div class="status-name">DRAFT</div>
+        <div class="status-desc">Being written. May be incomplete, untraceable, or not yet verifiable.</div>
+      </div>
+      <div class="status-card active">
+        <div class="status-name">ACTIVE</div>
+        <div class="status-desc">Complete, traced, verifiable. Design team is designing to it. Not yet frozen.</div>
+      </div>
+      <div class="status-card baselined">
+        <div class="status-name">BASELINED</div>
+        <div class="status-desc">Frozen at a design review gate. Changes require a formal Change Request.</div>
+      </div>
+      <div class="status-card change">
+        <div class="status-name">IN CHANGE</div>
+        <div class="status-desc">A Change Request is open against this requirement. Implementation paused pending decision.</div>
+      </div>
+      <div class="status-card verify">
+        <div class="status-name">IN VERIFICATION</div>
+        <div class="status-desc">Design is complete. Test is being executed or analysis is underway.</div>
+      </div>
+      <div class="status-card verified">
+        <div class="status-name">VERIFIED</div>
+        <div class="status-desc">Verification complete with accepted evidence. Requirement is closed.</div>
+      </div>
+      <div class="status-card waived">
+        <div class="status-name">WAIVED</div>
+        <div class="status-desc">Requirement formally waived with documented rationale and authority sign-off.</div>
+      </div>
+      <div class="status-card closed">
+        <div class="status-name">CLOSED</div>
+        <div class="status-desc">Deleted or superseded. Archived with reference to replacement requirement.</div>
+      </div>
+    </div>
+
+    <h3>Lifecycle Transition Rules</h3>
+
+    <table class="styled">
+      <thead><tr><th>Transition</th><th>Trigger</th><th>Authority</th><th>Action Required</th></tr></thead>
+      <tbody>
+        <tr><td>Draft → Active</td><td>Req is traceable, has verification method, has owner</td><td>Subsystem Lead</td><td>Check all required properties populated</td></tr>
+        <tr><td>Active → Baselined</td><td>Design Review gate passed (PDR for T2, CDR for T3)</td><td>Program Lead</td><td>Record baseline date; freeze in Notion</td></tr>
+        <tr><td>Baselined → In Change</td><td>CR is submitted against this req</td><td>Automatic</td><td>Link CR; set status; block design changes</td></tr>
+        <tr><td>In Change → Baselined</td><td>CR approved, req text updated</td><td>CR Authority</td><td>Update req text; close CR; update V&V records</td></tr>
+        <tr><td>In Change → Baselined</td><td>CR rejected — no change made</td><td>CR Authority</td><td>Close CR; revert to Baselined; document in CR</td></tr>
+        <tr><td>Baselined → In Verification</td><td>Test procedure written; hardware ready</td><td>Test Engineer</td><td>Link test procedure; schedule test event</td></tr>
+        <tr><td>In Verification → Verified</td><td>Test Pass with accepted evidence</td><td>Subsystem Lead</td><td>Link V&V record; stamp date; update T2 rollup</td></tr>
+        <tr><td>Any → Waived</td><td>Formal waiver decision</td><td>Program Lead</td><td>Document rationale; get sign-off; archive evidence</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr class="divider">
+
+
+  <!-- ── 08 CHANGE FLOW ── -->
+  <div class="section" id="change-flow">
+    <div class="section-header">
+      <div class="section-num">08</div>
+      <h2>Change Control Workflow</h2>
+    </div>
+
+    <p>This is the step-by-step process a requirement change follows in Notion, from discovery to implementation. Every step has a specific Notion action.</p>
+
+    <div class="workflow">
+      <div class="wf-step">
+        <div class="wf-num">1</div>
+        <div class="wf-content">
+          <div class="wf-title">Engineer identifies need for change</div>
+          <div class="wf-desc">During design, test, or customer discussion, an engineer discovers a requirement needs to change. They open the requirement page in Notion and add a comment flagging the issue with supporting data.</div>
+          <div class="wf-tags"><span class="wf-tag">Notion: Add comment on req page</span></div>
+        </div>
+      </div>
+      <div class="wf-step">
+        <div class="wf-num">2</div>
+        <div class="wf-content">
+          <div class="wf-title">Submit a Change Request</div>
+          <div class="wf-desc">Create a new entry in the Change Requests database. Fill in the CR template fully — problem statement, proposed change, impact analysis, and class determination. Incomplete CRs are returned without review.</div>
+          <div class="wf-tags"><span class="wf-tag">Notion: New CR entry</span><span class="wf-tag">Status → Submitted</span><span class="wf-tag">Link affected reqs</span></div>
+        </div>
+      </div>
+      <div class="wf-step">
+        <div class="wf-num">3</div>
+        <div class="wf-content">
+          <div class="wf-title">Mark affected requirements "In Change"</div>
+          <div class="wf-desc">Update the Status of every requirement listed in the CR's "Affected Requirements" relation to "In Change." This signals to the team that the design basis is under review and implementation should pause on those reqs.</div>
+          <div class="wf-tags"><span class="wf-tag">All affected reqs: Status → In Change</span></div>
+        </div>
+      </div>
+      <div class="wf-step">
+        <div class="wf-num">4</div>
+        <div class="wf-content">
+          <div class="wf-title">Review board assessment</div>
+          <div class="wf-desc">Class I: Program Lead convenes a review (can be async in Notion comments). Class II: Subsystem Lead reviews solo. Both use the CR page to document the impact analysis review. A decision must be made within the SLA (Class I: 5 days, Class II: 2 days).</div>
+          <div class="wf-tags"><span class="wf-tag">Status → Under Review</span><span class="wf-tag">Notion: comments for review discussion</span></div>
+        </div>
+      </div>
+      <div class="wf-step">
+        <div class="wf-num">5</div>
+        <div class="wf-content">
+          <div class="wf-title">Decision recorded</div>
+          <div class="wf-desc">Decision authority fills in the Disposition field of the CR and updates Status to Approved or Rejected. Both decisions require written rationale — approvals explain why the change was necessary; rejections explain what alternative path will be pursued.</div>
+          <div class="wf-tags"><span class="wf-tag">CR Status → Approved or Rejected</span><span class="wf-tag">Disposition field required</span></div>
+        </div>
+      </div>
+      <div class="wf-step">
+        <div class="wf-num">6</div>
+        <div class="wf-content">
+          <div class="wf-title">If Approved — implement the change</div>
+          <div class="wf-desc">Update the requirement text in the database. Add a row to the Change History toggle in the req page. If "V&V Re-run Required" was checked on the CR, mark the linked V&V Records as "Retest Required." Update any downstream T3/T4 requirements that are now inconsistent. Return all affected req statuses to Baselined.</div>
+          <div class="wf-tags"><span class="wf-tag">Update req text</span><span class="wf-tag">Req Status → Baselined</span><span class="wf-tag">Flag V&V retests</span><span class="wf-tag">CR Status → Implemented</span></div>
+        </div>
+      </div>
+      <div class="wf-step">
+        <div class="wf-num">7</div>
+        <div class="wf-content">
+          <div class="wf-title">Close the CR</div>
+          <div class="wf-desc">Confirm all checklist items on the CR page are complete. Update CR Status → Closed. The CR remains permanently in the database as an audit trail — never delete CRs.</div>
+          <div class="wf-tags"><span class="wf-tag">CR Status → Closed</span><span class="wf-tag">Never delete — archive trail</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+
+  <!-- ── 09 V&V TRACEABILITY ── -->
+  <div class="section" id="vv-flow">
+    <div class="section-header">
+      <div class="section-num">09</div>
+      <h2>V&amp;V Traceability Workflow</h2>
+    </div>
+
+    <p>The V&V flow answers the question: "Which requirements have been closed, and with what evidence?" The Notion relation between T2/T3 and V&V Records is your compliance matrix.</p>
+
+    <div class="callout green">
+      <div class="callout-label">Key Concept</div>
+      <p>One V&V Record can verify multiple requirements. A bench test that sweeps temperature, voltage, and load simultaneously can close a dozen T3 reqs in a single test event. Conversely, one requirement may require multiple verification events (e.g., test at ambient + test at temperature extremes). Model this by linking the V&V Record to all reqs it closes — requirements can have multiple linked V&V Records.</p>
+    </div>
+
+    <h3>The V&V Plan (Built at PDR)</h3>
+    <p>Before the first prototype is built, create placeholder V&V Records for every planned test event. Set Result = "Pending" and link the requirements they will verify. This gives you a live compliance matrix that starts "all red" and goes green as tests are executed.</p>
+
+    <div class="code-block">
+      <div class="code-label">Planned V&V Record — Before Test</div>
+      <code><span class="prop">VV ID:</span>       <span class="val">VV-014</span>
+<span class="prop">Title:</span>       <span class="str">Laser driver peak current — Proto-1 bench test</span>
+<span class="prop">Method:</span>      <span class="val">Test</span>
+<span class="prop">Phase:</span>       <span class="val">Proto</span>
+<span class="prop">Reqs Linked:</span> <span class="val">LASER-003, LASER-004, LASER-009, PWR-017</span>
+<span class="prop">Result:</span>      <span class="val">Pending</span>  <span class="cmt">← placeholder until executed</span>
+<span class="prop">Date:</span>        <span class="cmt">← blank until executed</span>
+<span class="prop">Procedure:</span>   <span class="val">https://drive.google.com/[link]</span>
+<span class="prop">Evidence:</span>    <span class="cmt">← blank until executed</span></code>
+    </div>
+
+    <h3>Closing a Requirement</h3>
+    <ol>
+      <li>Execute the test. Collect and store data in a test report (Google Drive, Notion file upload, or your engineering file server).</li>
+      <li>Open the V&V Record in Notion. Fill in Date, Performed By, Build/Unit, Evidence link.</li>
+      <li>Set Result to Pass, Fail, or Conditional Pass.</li>
+      <li>For each linked requirement: if the result is Pass, update V&V Status on the T2/T3 requirement to "Verified."</li>
+      <li>For Fails: open a separate issue or action item. Do not close the V&V Record — update Result = Fail and leave evidence linked.</li>
+    </ol>
+
+    <h3>Generating a Compliance Matrix</h3>
+    <p>Create a linked view of the T2 or T3 database filtered and grouped by V&V Status. This is your compliance matrix — it answers "what percentage of requirements are verified" at any point in the program.</p>
+
+    <div class="code-block">
+      <div class="code-label">Compliance Matrix View — Notion Filter Config</div>
+      <code><span class="kw">Database:</span>  T3 — Subsystem Requirements
+<span class="kw">View Type:</span> Table
+<span class="kw">Group By:</span>  V&V Status
+<span class="kw">Filter:</span>    Status is not "Draft" or "Closed"
+<span class="kw">Sort:</span>      Subsystem ASC, Req ID ASC
+<span class="kw">Properties shown:</span>
+  Req ID | Requirement Statement (truncated) |
+  Subsystem | Verification Method | V&V Status |
+  V&V Records (count rollup) | Owner</code>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+
+  <!-- ── 10 VIEWS ── -->
+  <div class="section" id="views">
+    <div class="section-header">
+      <div class="section-num">10</div>
+      <h2>Database Views to Create</h2>
+    </div>
+
+    <p>Notion's power is in views — filtered, grouped, sorted perspectives on the same underlying data. Create these as named views within each database so every team member can quickly find what's relevant to them.</p>
+
+    <h3>T2/T3 Requirement Views</h3>
+    <div class="view-grid">
+      <div class="view-card">
+        <div class="view-card-type table">Table</div>
+        <div class="view-card-name">All Active Requirements</div>
+        <p>Filter: Status ≠ Draft, ≠ Closed. Grouped by Subsystem. Default view for working engineers.</p>
+      </div>
+      <div class="view-card">
+        <div class="view-card-type board">Board</div>
+        <div class="view-card-name">By V&V Status</div>
+        <p>Kanban columns: Not Started / Planned / In Progress / Verified / Waived. Drag-to-update as tests complete.</p>
+      </div>
+      <div class="view-card">
+        <div class="view-card-type filter">Table</div>
+        <div class="view-card-name">🚨 Orphan Requirements</div>
+        <p>Filter: Parent T2 is empty (for T3) OR T3 Children count = 0 (for T2 after PDR). Should always be zero at CDR.</p>
+      </div>
+      <div class="view-card">
+        <div class="view-card-type filter">Table</div>
+        <div class="view-card-name">🔴 Negative Margin</div>
+        <p>Filter: Margin contains "-". Manually maintained — shows requirements currently failing their spec.</p>
+      </div>
+      <div class="view-card">
+        <div class="view-card-type table">Table</div>
+        <div class="view-card-name">My Requirements</div>
+        <p>Filter: Owner = Me. Each engineer's personal work queue. Sort by V&V Status, then Priority.</p>
+      </div>
+      <div class="view-card">
+        <div class="view-card-type board">Board</div>
+        <div class="view-card-name">By Verification Phase</div>
+        <p>Columns: Bench / Proto / EM / Qual / Acceptance. Lets test team plan resource loading by phase.</p>
+      </div>
+      <div class="view-card">
+        <div class="view-card-type gallery">Gallery</div>
+        <div class="view-card-name">Safety-Critical Reqs</div>
+        <p>Filter: Criticality = Safety-Critical. Gallery view with large V&V Status indicator. High-visibility format for safety reviews.</p>
+      </div>
+      <div class="view-card">
+        <div class="view-card-type filter">Table</div>
+        <div class="view-card-name">⚡ In Change</div>
+        <p>Filter: Status = In Change. Shows all reqs currently under an open CR. Check this daily when CRs are active.</p>
+      </div>
+    </div>
+
+    <h3>Change Request Views</h3>
+    <div class="view-grid">
+      <div class="view-card">
+        <div class="view-card-type board">Board</div>
+        <div class="view-card-name">CR Pipeline</div>
+        <p>Kanban: Submitted / Under Review / Approved / Rejected / Implemented / Closed. Full change pipeline at a glance.</p>
+      </div>
+      <div class="view-card">
+        <div class="view-card-type filter">Table</div>
+        <div class="view-card-name">Open CRs — Past SLA</div>
+        <p>Filter: Status = Submitted or Under Review, Decision Date &lt; Today. These are overdue decisions that need escalation.</p>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+
+  <!-- ── 11 DASHBOARD ── -->
+  <div class="section" id="dashboard">
+    <div class="section-header">
+      <div class="section-num">11</div>
+      <h2>Program Dashboard</h2>
+    </div>
+
+    <p>The Program Dashboard is a single Notion page that gives leadership and the full team a real-time health view. It's built from linked views — no manual data entry needed. Lay it out in two columns:</p>
+
+    <div class="template-block">
+      <div class="template-header">
+        <span>Notion Page Layout</span>
+        <strong>Program Dashboard</strong>
+      </div>
+      <div class="template-body"><span class="h1">⚡ [PROGRAM NAME] — Requirements Dashboard</span>
+<span class="prop">Last Updated:</span> <span class="propval">[auto — this page is live]</span>
+<span class="prop">Next Review:</span>  <span class="propval">CDR — [date]</span>
+
+<span class="h2">── PROGRAM HEALTH ─────────────────────────────────────</span>
+<span class="placeholder">// 3-column stat blocks (use Notion columns)
+// These are manually maintained KPIs or use formulas</span>
+
+<span class="toggle">| T1 Baselined  | T2 Active  | T3 Verified   |</span>
+<span class="toggle">|   24 / 24     |  187 / 203 |   89 / 312    |</span>
+<span class="toggle">|   ✅ 100%     |  🟡  92%   |   🔴  29%     |</span>
+
+<span class="h2">── OPEN CHANGE REQUESTS ───────────────────────────────</span>
+<span class="propval">[Linked view: CRs where Status = Open/Under Review]</span>
+<span class="placeholder">// Shows: CR ID | Title | Class | Submitted By | Due Date | Days Open</span>
+
+<span class="h2">── REQUIREMENTS IN CHANGE ─────────────────────────────</span>
+<span class="propval">[Linked view: T2+T3 where Status = In Change]</span>
+
+<span class="h2">── NEGATIVE MARGIN FLAGS ──────────────────────────────</span>
+<span class="propval">[Linked view: T3 where Margin contains "-"]</span>
+<span class="placeholder">// Shows requirements currently failing spec — action required</span>
+
+<span class="h2">── V&amp;V CLOSURE BY SUBSYSTEM ──────────────────────────</span>
+<span class="propval">[Linked view: T3 grouped by Subsystem, grouped by V&V Status]</span>
+<span class="placeholder">// Gives closure rate per subsystem — find laggards early</span>
+
+<span class="h2">── REQUIREMENTS WITHOUT TEST PROCEDURES ───────────────</span>
+<span class="propval">[Linked view: T3 where V. Method = Test AND Test Procedure URL empty]</span>
+<span class="placeholder">// These are gaps — test procedures must be written before hardware arrives</span>
+
+<span class="h2">── UPCOMING VERIFICATION EVENTS ───────────────────────</span>
+<span class="propval">[Linked view: V&V Records where Result = Pending, sorted by Date]</span></div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+
+  <!-- ── 12 NAMING CONVENTIONS ── -->
+  <div class="section" id="conventions">
+    <div class="section-header">
+      <div class="section-num">12</div>
+      <h2>Naming Conventions</h2>
+    </div>
+
+    <p>Consistent IDs are non-negotiable. Every requirement, CR, and V&V record needs a stable, human-readable identifier that appears in design documents, test reports, and emails — not just in Notion.</p>
+
+    <div class="code-block">
+      <div class="code-label">ID Format Reference</div>
+      <code><span class="cmt">// Tier 1 — Mission Requirements</span>
+<span class="kw">MR-001</span>   MR-002   MR-003  ...
+
+<span class="cmt">// Tier 2 — System Requirements</span>
+<span class="kw">SR-001</span>   SR-002   SR-003  ...
+
+<span class="cmt">// Tier 3 — Subsystem Requirements (prefix = subsystem)</span>
+<span class="kw">LASER-001</span>   Laser transmitter subsystem
+<span class="kw">RX-001</span>      Receiver / detector subsystem
+<span class="kw">TDC-001</span>     Time-to-digital converter subsystem
+<span class="kw">SCAN-001</span>    Scanning mechanism
+<span class="kw">GEO-001</span>     Georeferencing (IMU + GNSS)
+<span class="kw">PWR-001</span>     Power management
+<span class="kw">DATA-001</span>    Data interface
+
+<span class="cmt">// Tier 4 — Implementation Requirements</span>
+<span class="kw">MFG-001</span>   Manufacturing
+<span class="kw">ASSY-001</span>  Assembly
+<span class="kw">QA-001</span>    Quality / inspection
+
+<span class="cmt">// Change Requests</span>
+<span class="kw">CR-001</span>   CR-002  ...
+
+<span class="cmt">// Verification &amp; Validation Records</span>
+<span class="kw">VV-001</span>   VV-002  ...
+
+<span class="cmt">// Rules:</span>
+<span class="cmt">// — IDs are assigned sequentially and NEVER reused</span>
+<span class="cmt">// — Closed/superseded reqs keep their ID forever</span>
+<span class="cmt">// — ID format must match in Notion AND in design docs</span>
+<span class="cmt">// — Use 3-digit minimum padding: 001, not 1</span></code>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+
+  <!-- ── 13 REVIEW CADENCE ── -->
+  <div class="section" id="review-cadence">
+    <div class="section-header">
+      <div class="section-num">13</div>
+      <h2>Weekly Operations &amp; Review Cadence</h2>
+    </div>
+
+    <h3>Daily (5 minutes)</h3>
+    <p>Each engineer checks "My Requirements" view. Looks for: status changes needed, new comments requiring response, V&V records to fill in from yesterday's tests.</p>
+
+    <h3>Weekly (15–30 minutes — in standup)</h3>
+    <ul>
+      <li>Program Lead checks the Dashboard for open CRs past SLA and new negative margins.</li>
+      <li>Any "In Change" reqs that have been sitting more than 3 days without a CR decision get escalated.</li>
+      <li>Test team checks upcoming V&V Events and confirms procedures are ready.</li>
+    </ul>
+
+    <h3>At Every Design Review (SRR / PDR / CDR)</h3>
+
+    <table class="styled">
+      <thead><tr><th>Review</th><th>Requirements State Required</th><th>Key Notion Check</th></tr></thead>
+      <tbody>
+        <tr><td>SRR</td><td>T1 all Active; T2 drafted ≥50%</td><td>Orphan T1 view = 0; T2 parent linked</td></tr>
+        <tr><td>PDR</td><td>T1 Baselined; T2 Active/Baselined; T3 drafted ≥80%</td><td>All T2 have T3 children; all T3 have Verification Method</td></tr>
+        <tr><td>CDR</td><td>T2 Baselined; T3 Baselined; T4 Active; V&V plan 100% planned</td><td>All V&V Records created (even if Pending); Test Procedures linked</td></tr>
+        <tr><td>TRR</td><td>Hardware available; Test procedures finalized</td><td>All T3 Test Procedure URLs populated; V&V Records show Phase = current build</td></tr>
+        <tr><td>FRR</td><td>All requirements Verified or formally Waived</td><td>V&V Status view shows zero "Not Started" or "Planned"; all Waivers have sign-off</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr class="divider">
+
+
+  <!-- ── 14 WIKI ALTERNATIVE ── -->
+  <div class="section" id="wiki-alt">
+    <div class="section-header">
+      <div class="section-num">14</div>
+      <h2>Confluence / Wiki Alternative</h2>
+    </div>
+
+    <p>If your team uses Confluence instead of Notion, the architecture is the same but the implementation differs. Confluence lacks native relational databases, so you implement traceability differently.</p>
+
+    <div class="callout red">
+      <div class="callout-label">Tradeoff</div>
+      <p>Confluence pages are better for rich documentation but lack Notion's relational database power. For requirements management, Confluence works best when paired with Jira — Confluence holds the narrative, Jira holds the requirements as issues with links and filters.</p>
+    </div>
+
+    <h3>Confluence + Jira Architecture</h3>
+
+    <div class="code-block">
+      <div class="code-label">Confluence Space Structure</div>
+      <code><span class="kw">📁 [PROGRAM] Requirements Space</span>
+│
+├── <span class="lbl">Requirements Specification (SRS)</span>   ← living document
+│   ├── 1. Mission Requirements (T1)
+│   ├── 2. System Requirements (T2)
+│   ├── 3. Subsystem Requirements (T3)
+│   └── 4. ICD Index
+│
+├── <span class="lbl">Verification &amp; Validation Plan</span>
+│   ├── Test Plan
+│   ├── Compliance Matrix            ← Confluence Table Macro
+│   └── Test Reports (indexed)
+│
+├── <span class="lbl">Change Log</span>                        ← linked to Jira CRs
+│
+└── <span class="lbl">Design Reviews</span>
+    ├── SRR / PDR / CDR pages
+    └── Action Item Tracker          ← Jira filter macro
+
+<span class="cmt">// Jira Projects alongside:
+// — "Requirements" project: one Jira issue per T2/T3 requirement
+//   Epic = subsystem, Issue = requirement, Label = tier
+// — "Change Requests" project: one Jira issue per CR
+//   Link types: "requires change to", "is blocked by"
+// — Use Jira's "Links" to trace T2 → T1, T3 → T2, CR → Reqs
+// — Compliance matrix: Confluence table with Jira macro inline</span></code>
+    </div>
+
+    <h3>Confluence Requirement Page Structure</h3>
+    <p>Each T2/T3 requirement is a row in a Confluence table, with a linked Confluence page for detail. Use the "Requirements Blueprint" Confluence template if available, or create a custom blueprint. Each detail page mirrors the Notion template structure above.</p>
+
+    <h3>For Pure Wiki (no Jira)</h3>
+    <p>If you're truly wiki-only (GitHub Wiki, Notion without databases, Obsidian), the minimum viable system is:</p>
+    <ul>
+      <li>One markdown file per requirement, named by ID (e.g. <code>LASER-003.md</code>).</li>
+      <li>A master index table in a <code>README.md</code> or <code>REQUIREMENTS.md</code> file with status and verification columns.</li>
+      <li>Git commit discipline: every requirement change is a commit with the CR ID in the message (<code>git commit -m "CR-014: Update LASER-003 peak current spec to 30A"</code>).</li>
+      <li>Change history lives in <code>git log --follow LASER-003.md</code> — permanent and auditable.</li>
+      <li>This approach scales to ~200 requirements before becoming unwieldy. Past that, move to a proper relational system.</li>
+    </ul>
+
+    <div class="callout purple">
+      <div class="callout-label">Recommendation</div>
+      <p>For a hardware startup doing serious prototype-to-production work, <strong>Notion is the right tool up to ~500 T3 requirements</strong>. Past that scale, or when regulatory compliance demands (DO-178, AS9100, ISO 13485), migrate to Jama Connect or Polarion which are purpose-built for requirements traceability and can generate compliance matrices automatically.</p>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script>
+  // Highlight active nav link on scroll
+  const sections = document.querySelectorAll('.section, .hero');
+  const navLinks = document.querySelectorAll('.nav-link');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        navLinks.forEach(link => {
+          link.classList.toggle('active', link.getAttribute('href') === `#${id}`);
+        });
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+
+  sections.forEach(s => { if (s.id) observer.observe(s); });
+</script>
+</body>
+</html>

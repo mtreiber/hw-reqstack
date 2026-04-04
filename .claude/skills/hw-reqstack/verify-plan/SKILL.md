@@ -5,8 +5,8 @@ description: >
   time the requirement is written — not at CDR. Takes all subsystem
   requirement files and ICD files and produces a Verification Matrix
   with test method, test article, pass criterion, failure disposition,
-  and earliest test date for every requirement. Flags any requirement
-  that cannot be concretely tested as UNTESTABLE.
+  prerequisite tests, and earliest test date for every requirement.
+  Flags any requirement that cannot be concretely tested as UNTESTABLE.
 ---
 
 You are a test engineer. The Iron Law: no requirement ships to baseline
@@ -21,6 +21,9 @@ Read:
 For every requirement in every file, write a complete verification entry.
 Write output to: `requirements/05-verification/verify-matrix.md`
 
+Test records for completed tests are written using the /test-record skill.
+Once a test record is complete, update the test record path in this matrix.
+
 ## Verification Methods
 
 Choose exactly one per requirement:
@@ -32,9 +35,11 @@ Choose exactly one per requirement:
   thermal model). Must cite the specific tool and model.
 - **INSPECTION** — visual or dimensional check. Only for form and fit
   requirements that have no measurable performance parameter.
-- **DEMONSTRATION** — functional operation observed without quantitative
-  measurement. Only acceptable for mode/state requirements with binary
-  pass/fail (e.g., system enters safe mode on power loss).
+- **DEMONSTRATION** — functional operation observed with a defined observable
+  indicator. Only acceptable for mode/state requirements with binary pass/fail.
+  The observable indicator must be explicitly named (e.g., "LED D3 illuminates
+  and UART outputs 0x5A within 100ms of power loss"). "System enters safe mode"
+  is not a DEMONSTRATION criterion — name the indicator.
 
 ## Anti-Patterns — Flag These Immediately
 
@@ -67,6 +72,19 @@ For every requirement, state what happens if the test fails:
 This forces clarity about which requirements are design drivers
 vs. which are verification checkboxes.
 
+## Test Sequencing
+
+For each verification entry, identify any tests that must complete first.
+Circular dependencies (Test A requires Test B which requires Test A)
+must be resolved at /baseline before the test campaign begins.
+
+## Equipment Calibration
+
+All instruments listed in the test setup must have a valid calibration
+expiry date entered in the Equipment Procurement List. An instrument
+whose calibration expires before the planned test date is treated as
+NOT PROCURED for planning purposes — flag it as a PHANTOM TEST risk.
+
 ## Output Document
 
 Write to: `requirements/05-verification/verify-matrix.md`
@@ -92,17 +110,19 @@ Input: requirements/03-derived/subsystems/*.md
 
 **Requirement Text:** [Exact text from derived requirements file]
 **Owner:** [Named engineer]
-**Maturity:** ASPIRATIONAL | ANALYTICAL | VALIDATED
+**Maturity:** ASPIRATIONAL | ANALYTICAL-MANUAL | ANALYTICAL-SIMULATION | VALIDATED
 
 ---
 
 **Verification Method:** TEST | ANALYSIS | INSPECTION | DEMONSTRATION
 
+**Prerequisite Tests:** [TR-NNN that must PASS before this test runs, or NONE]
+
 **Test Article:**
 [Specific hardware: board revision, serial number if known, bench configuration]
 
 **Test Setup:**
-[Instruments required. Flag any not yet procured.]
+[Instruments required. Flag any not yet procured or with expired calibration.]
 - Instrument 1: [name / model] — STATUS: AVAILABLE | ON ORDER | NOT PROCURED
 - Instrument 2: [name / model] — STATUS: AVAILABLE | ON ORDER | NOT PROCURED
 
@@ -132,9 +152,9 @@ PROGRAM GATE — failure stops advancement; escalate immediately
 
 ## Verification Matrix Summary
 
-| Req ID | Title | Method | Article | Pass Criterion Summary | Test Date | Status |
-|--------|-------|--------|---------|------------------------|-----------|--------|
-|        |       |        |         |                        |           | NOT RUN / PASS / FAIL |
+| Req ID | Title | Method | Prereqs | Article | Pass Criterion Summary | Test Date | Status |
+|--------|-------|--------|---------|---------|------------------------|-----------|--------|
+|        |       |        | TR-NNN / NONE |   |                        |           | NOT RUN / PASS / FAIL |
 
 ## Anti-Pattern Flags Summary
 
@@ -144,24 +164,28 @@ PROGRAM GATE — failure stops advancement; escalate immediately
 
 ## Equipment Procurement List
 
-| Instrument | Model | Required By | Status        | Owner |
-|------------|-------|-------------|---------------|-------|
-|            |       | YYYY-MM-DD  | AVAILABLE /   |       |
-|            |       |             | ON ORDER /    |       |
-|            |       |             | NOT PROCURED  |       |
+| Instrument | Model | Calibration Expiry | Required By | Status        | Owner |
+|------------|-------|--------------------|-------------|---------------|-------|
+|            |       | YYYY-MM-DD         | YYYY-MM-DD  | AVAILABLE /   |       |
+|            |       |                    |             | ON ORDER /    |       |
+|            |       |                    |             | NOT PROCURED  |       |
+
+Note: If Calibration Expiry < Required By date, flag this row as PHANTOM TEST risk.
 
 ## Verification Coverage Metrics
 
-| Metric                            | Count |
-|-----------------------------------|-------|
-| Requirements reviewed             |       |
-| TEST                              |       |
-| ANALYSIS                          |       |
-| INSPECTION                        |       |
-| DEMONSTRATION                     |       |
-| UNTESTABLE (returned to /req-derive)|     |
-| Anti-pattern flags raised         |       |
-| Equipment gaps identified         |       |
+| Metric                              | Count |
+|-------------------------------------|-------|
+| Requirements reviewed               |       |
+| TEST                                |       |
+| ANALYSIS                            |       |
+| INSPECTION                          |       |
+| DEMONSTRATION                       |       |
+| UNTESTABLE (returned to /req-derive)|       |
+| Anti-pattern flags raised           |       |
+| Equipment gaps identified           |       |
+| Calibration gaps identified         |       |
+| Prerequisite dependency chains      |       |
 
 ## Revision History
 
@@ -169,3 +193,10 @@ PROGRAM GATE — failure stops advancement; escalate immediately
 |---------|------------|--------|-----------------------|
 | 0.1     | YYYY-MM-DD | [name] | Initial verify matrix |
 ```
+
+## Re-run Protocol
+
+When updating a single requirement's verification entry (returned from /baseline
+or /req-change), update only that REQ-ID block in the matrix. Append the updated
+block and update the Verification Matrix Summary row for that REQ-ID.
+Increment the Revision History version.

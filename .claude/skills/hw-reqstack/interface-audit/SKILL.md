@@ -37,8 +37,14 @@ If margin > 30%: → REDUCE. Tighter specs mean more integration risk, not less.
 
 **QUESTION 3 — LATENT ASSUMPTION**
 What assumption does this interface encode that has never been tested?
-Every ICD value that was estimated rather than measured is a latent risk.
-List all untested assumptions. These become priority items for /verify-plan.
+Important distinction:
+- If the ICD value comes directly from a vendor datasheet or a measured test record,
+  **this is not a latent assumption** — it is a verified claim. Cite the source
+  (datasheet name + page, or TR-NNN) and mark it as VERIFIED.
+- If the value was estimated, calculated without test data, or inherited from a
+  prior design, **this is a latent assumption** and a priority risk.
+List all latent assumptions. These become priority items for /verify-plan with
+a Risk Level assigned.
 
 **QUESTION 4 — VERTICAL INTEGRATION OPPORTUNITY**
 Could bringing this function in-house eliminate the interface entirely?
@@ -51,6 +57,22 @@ This is not always worth pursuing — but it must always be asked.
 - **COLLAPSE** — same-team interface; convert to design note in subsystem req file
 - **REDUCE** — over-specified; return with computed minimum specification
 - **ELIMINATE** — vertical integration or redesign can remove this interface
+
+## ICD File Status Gates
+
+For individual ICD files, status transitions require:
+- **DRAFT → APPROVED**: Both side-A and side-B owners must review and confirm
+  agreement on all parameter values. Record both names and dates in the file.
+- **APPROVED → SUPERSEDED**: A change impact assessment must be completed
+  citing which subsystem requirements and verification entries are affected.
+  Reference the CR-NNN from /req-change that drove the change.
+Do not advance status without completing the gate action.
+
+## REDUCE Disposition Tracking
+
+When an interface is returned as REDUCE, the ICD Audit Report must track
+confirmation that the reduction was actually applied before baseline.
+The /baseline Gate 7 check will verify this tracking column.
 
 ## Output Documents
 
@@ -81,13 +103,12 @@ Input: requirements/02-challenged/challenge-log.md (ICD CANDIDATE flags)
 **Owner — Side B:** [Named engineer]
 **Same owner both sides?** YES / NO
 
-| Question                  | Finding                                       |
-|---------------------------|-----------------------------------------------|
-| 1 — Necessity             | [Exists because of org boundary / design /    |
-|                           |  same team]                                   |
-| 2 — Over-specification    | [Functional minimum vs stated value; margin]  |
-| 3 — Latent Assumptions    | [Untested values, estimated parameters]       |
-| 4 — VI Opportunity        | [Cost/complexity of elimination]              |
+| Question                  | Finding                                              |
+|---------------------------|------------------------------------------------------|
+| 1 — Necessity             | [Exists because of org boundary / design / same team]|
+| 2 — Over-specification    | [Functional minimum vs stated value; margin]         |
+| 3 — Latent Assumptions    | [Untested estimates: LATENT / Vendor/test-backed: VERIFIED (cite source)] |
+| 4 — VI Opportunity        | [Cost/complexity of elimination]                     |
 
 **Disposition:** KEEP | COLLAPSE | REDUCE | ELIMINATE
 
@@ -95,8 +116,8 @@ Input: requirements/02-challenged/challenge-log.md (ICD CANDIDATE flags)
 [Specific action: who does what by when]
 
 **Latent Assumptions for /verify-plan:**
-- [ ] [Assumption 1 — must be tested before baseline]
-- [ ] [Assumption 2]
+- [ ] [Assumption 1 — Risk: HIGH / MED / LOW — must be tested before baseline]
+- [ ] [Assumption 2 — Risk: HIGH / MED / LOW]
 
 ---
 
@@ -105,6 +126,14 @@ Input: requirements/02-challenged/challenge-log.md (ICD CANDIDATE flags)
 | ICD ID  | Interface            | Disposition | Action Owner | Due       |
 |---------|----------------------|-------------|--------------|-----------|
 |         |                      |             |              |           |
+
+## REDUCE Confirmation Tracking
+
+| ICD ID | Returned To | Original Value | Reduced Value | Confirmed By | Confirmed Date |
+|--------|-------------|----------------|---------------|--------------|----------------|
+|        |             |                |               |              | YYYY-MM-DD     |
+
+**Note:** /baseline Gate 7 will verify all REDUCE rows have a Confirmed Date before approving.
 
 ## ICD Reduction Metrics
 
@@ -119,9 +148,9 @@ Input: requirements/02-challenged/challenge-log.md (ICD CANDIDATE flags)
 
 ## Latent Assumptions Summary (priority input to /verify-plan)
 
-| ICD ID | Assumption | Risk Level | Test Owner | Test Date |
-|--------|------------|------------|------------|-----------|
-|        |            | HIGH/MED/LOW|           |           |
+| ICD ID | Assumption | Risk Level   | Test Owner | Test Date |
+|--------|------------|--------------|------------|-----------|
+|        |            | HIGH/MED/LOW |            |           |
 
 ## Revision History
 
@@ -142,13 +171,20 @@ Owner — Side A: [name]
 Owner — Side B: [name]
 Status: DRAFT | APPROVED | SUPERSEDED
 
+Status Gate:
+  DRAFT → APPROVED: Both owners confirmed below
+  APPROVED → SUPERSEDED: Change impact assessment required (cite CR-NNN)
+
+Side-A Approval: [Name] — [Date]  (required for DRAFT → APPROVED)
+Side-B Approval: [Name] — [Date]  (required for DRAFT → APPROVED)
+
 ---
 
 ## Interface Definition
 
-| Parameter         | Value    | Units | Tolerance | Measurement Method |
-|-------------------|----------|-------|-----------|-------------------|
-| [parameter name]  |          |       |           |                   |
+| Parameter         | Value    | Units | Tolerance | Source                  | Measurement Method |
+|-------------------|----------|-------|-----------|-------------------------|--------------------|
+| [parameter name]  |          |       |           | DATASHEET p.X / TR-NNN / ESTIMATE | |
 
 ## Governing Requirement
 [REQ-ID from subsystem file that drives this interface]
@@ -157,7 +193,10 @@ Status: DRAFT | APPROVED | SUPERSEDED
 [Why this value. Governing equation or analysis reference.]
 
 ## Latent Assumptions (untested)
-- [ ] [Assumption — must be validated by YYYY-MM-DD]
+- [ ] [Assumption — Risk: HIGH / MED / LOW — must be validated by YYYY-MM-DD]
+
+## Verified Claims (backed by vendor datasheet or test record)
+- [parameter]: [value] — Source: [datasheet name, page / TR-NNN]
 
 ## Test Reference
 [TR-NNN once test is complete, or NOT YET RUN]

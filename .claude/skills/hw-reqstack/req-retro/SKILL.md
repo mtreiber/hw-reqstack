@@ -19,7 +19,8 @@ Read:
 - `requirements/07-baseline/current/baseline-v[N.N].md` — the baselined set
 - `requirements/05-verification/test-records/*.md` — all test records from this cycle
 - `requirements/06-traceability/rtm.md` — current RTM
-- `requirements/08-retros/` — prior retros (for trend analysis)
+- `requirements/08-retros/` — prior retros (for trend analysis and carryover actions)
+- `requirements/09-design-goals/design-goals.md` — current design goals list
 
 ## Five Retrospective Questions
 
@@ -45,6 +46,7 @@ Every deleted requirement is a data point. Categorize each deletion:
 Any requirement still at ASPIRATIONAL maturity after two or more cycles is a
 program risk. Name each one, its owner, and why it hasn't progressed.
 Outcome: either accelerate to ANALYTICAL/VALIDATED, or delete.
+Also review design-goals.md for Design Goals with expired target maturity dates.
 
 **QUESTION 4 — WHICH NEW REQUIREMENTS DID TEST GENERATE?**
 These are the most valuable requirements in the program. Test-generated
@@ -54,15 +56,22 @@ Document each one and immediately write it into the next cycle's
 
 **QUESTION 5 — REQUIREMENTS VELOCITY TREND**
 Compare this cycle to prior retros:
-- Requirements added vs. deleted vs. matured
+- Requirements added vs. deleted vs. matured vs. revised without converging
 - A healthy program deletes faster than it adds
 - Flag if adds are outpacing deletes for more than two consecutive cycles
+- Flag any requirement revised more than 3× without reaching VALIDATED
+
+If Q5 is 🔴 (adds > deletes for 2+ consecutive cycles):
+→ Create a risk entry in the program risk register. Attach this retro
+  document as the evidence artifact. Scope growth is a schedule risk.
 
 ## Output Document
 
 Write to: `requirements/08-retros/retro-[YYYY]-[milestone].md`
 Also update: `requirements/01-proposed/proposed-requirements.md` with
 new requirements identified in Question 4.
+Also update: `requirements/09-design-goals/design-goals.md` with
+Design Goals whose status has changed.
 
 ---
 
@@ -75,6 +84,17 @@ Milestone: [e.g., Laser Driver Board Rev A bring-up]
 Baseline Reference: requirements/07-baseline/current/baseline-v[N.N].md
 Test Records: requirements/05-verification/test-records/TR-[NNN] through TR-[NNN]
 Prior Retro: requirements/08-retros/retro-[prior].md
+
+---
+
+## Carryover Actions from Prior Retro
+
+| Action from Prior Retro      | Owner  | Due Date   | Status          |
+|------------------------------|--------|------------|-----------------|
+| [action description]         | [name] | YYYY-MM-DD | CLOSED / OPEN   |
+
+**Open carryovers rolling into this cycle:** [N]
+[If open: explain why the action was not completed and assign new due date.]
 
 ---
 
@@ -115,6 +135,11 @@ about how requirements are being written in that area?]
 |--------|-------|-------|------------------------|----------------|----------|
 |        |       |       |                        |                | ACCELERATE / DELETE |
 
+**Design Goals with Expired Target Dates:**
+| Goal ID | Title | Owner | Was Due | New Date | Status |
+|---------|-------|-------|---------|----------|--------|
+|         |       |       | YYYY-MM-DD |       | REPLAN / DELETE |
+
 **Action:** Each owner named above must either:
 - Run the analysis (→ ANALYTICAL) by [date], or
 - Run the test (→ VALIDATED) by [date], or
@@ -137,31 +162,55 @@ These enter requirements/01-proposed/proposed-requirements.md immediately.
 
 ## Q5 — Requirements Velocity Trend
 
-| Cycle     | Added | Deleted | Matured (→ANLYT) | Validated | Net |
-|-----------|-------|---------|------------------|-----------|-----|
-| [prior-2] |       |         |                  |           |     |
-| [prior-1] |       |         |                  |           |     |
-| [this]    |       |         |                  |           |     |
+| Cycle     | Added | Deleted | Revised | Matured (→ANLYT) | Validated | Net |
+|-----------|-------|---------|---------|------------------|-----------|-----|
+| [prior-2] |       |         |         |                  |           |     |
+| [prior-1] |       |         |         |                  |           |     |
+| [this]    |       |         |         |                  |           |     |
+
+**Churn Flag:** Requirements revised >3× without reaching VALIDATED:
+| Req ID | Revision Count | Owner | Diagnosis |
+|--------|----------------|-------|-----------|
+|        |                |       |           |
 
 **Health Signal:**
 ✅ Deletes ≥ Adds — requirements set is converging. On track.
 ⚠️ Adds > Deletes for 1 cycle — watch trend next cycle.
-🔴 Adds > Deletes for 2+ consecutive cycles — scope is growing. Investigate.
+🔴 Adds > Deletes for 2+ consecutive cycles — scope is growing. Open risk register entry.
 
 **This cycle:** [✅ / ⚠️ / 🔴] — [one sentence explanation]
+
+**Risk register entry created:** YES (see [risk-register-ref]) | N/A
 
 ---
 
 ## Process Improvements
 
-**One change to /req-challenge:**
-[Specific: which challenge question needs sharpening based on what slipped through?]
+List all changes needed, prioritized by estimated impact.
+Minimum one per skill where problems were found this cycle.
 
-**One change to /req-derive:**
-[Specific: which derivation step produced wrong values this cycle?]
+**Changes to /req-challenge:**
+1. [Highest impact: which challenge question needs sharpening based on what slipped through?]
+2. [Additional if needed]
 
-**One change to /verify-plan:**
-[Specific: which anti-pattern wasn't caught that should have been?]
+**Changes to /req-derive:**
+1. [Which derivation step produced wrong values this cycle?]
+2. [Additional if needed]
+
+**Changes to /verify-plan:**
+1. [Which anti-pattern wasn't caught that should have been?]
+2. [Additional if needed]
+
+**Changes to other skills:**
+- [/mission-challenge / /interface-audit / /traceability / /baseline — if applicable]
+
+---
+
+## Carryover Actions to Next Cycle
+
+| Action                  | Owner  | Due Date   | Skill Affected |
+|-------------------------|--------|------------|----------------|
+| [action description]    | [name] | YYYY-MM-DD | [skill name]   |
 
 ---
 
@@ -173,6 +222,7 @@ These enter requirements/01-proposed/proposed-requirements.md immediately.
 | % requirements with test data |            |             | ↑ / ↓  |
 | Delete rate (deleted/total)   |            |             | ↑ / ↓  |
 | Avg cycles to VALIDATED       |            |             | ↑ / ↓  |
+| Avg revisions before VALIDATED|            |             | ↑ / ↓  |
 | Red flags at baseline         |            |             | ↑ / ↓  |
 
 ---
